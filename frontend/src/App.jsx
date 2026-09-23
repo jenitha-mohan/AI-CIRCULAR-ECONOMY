@@ -20,6 +20,7 @@ import SellerMaterials from './pages/seller/SellerMaterials';
 import NewMaterial from './pages/seller/NewMaterial';
 import MaterialDetail from './pages/seller/MaterialDetail';
 import SellerRecommendations from './pages/seller/SellerRecommendations';
+import SellerOffers from './pages/seller/SellerOffers';
 import SellerTransactions from './pages/seller/SellerTransactions';
 
 // Buyer Pages
@@ -27,6 +28,7 @@ import BuyerDashboard from './pages/buyer/BuyerDashboard';
 import BuyerSearch from './pages/buyer/BuyerSearch';
 import BuyerRequirements from './pages/buyer/BuyerRequirements';
 import BuyerRecommendations from './pages/buyer/BuyerRecommendations';
+import BuyerOffers from './pages/buyer/BuyerOffers';
 import BuyerTransactions from './pages/buyer/BuyerTransactions';
 
 // Admin Pages
@@ -114,6 +116,7 @@ export default function App() {
             <Route path="materials" element={<SellerMaterials />} />
             <Route path="materials/new" element={<NewMaterial />} />
             <Route path="materials/:id" element={<MaterialDetail />} />
+            <Route path="offers" element={<SellerOffers />} />
             <Route path="recommendations" element={<SellerRecommendations />} />
             <Route path="transactions" element={<SellerTransactions />} />
           </Route>
@@ -122,6 +125,7 @@ export default function App() {
           <Route path="/buyer" element={<DashboardLayout />}>
             <Route path="dashboard" element={<BuyerDashboard />} />
             <Route path="search" element={<BuyerSearch />} />
+            <Route path="offers" element={<BuyerOffers />} />
             <Route path="requirements" element={<BuyerRequirements />} />
             <Route path="recommendations" element={<BuyerRecommendations />} />
             <Route path="transactions" element={<BuyerTransactions />} />

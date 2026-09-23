@@ -21,6 +21,11 @@ def create_listing(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["seller", "admin"]))
 ):
+    if listing_in.asking_price <= 0:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Asking price must be greater than zero")
+    if listing_in.quantity_available <= 0:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Quantity must be greater than zero")
+
     material = db.query(Material).filter(Material.id == listing_in.material_id).first()
     if not material:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Material not found")
@@ -32,13 +37,31 @@ def create_listing(
         seller_id=current_user.id,
         material_id=material.id,
         quantity_available=listing_in.quantity_available,
+        unit=listing_in.unit or "kg",
         asking_price=listing_in.asking_price,
+        min_acceptable_price=listing_in.min_acceptable_price,
+        ai_estimated_min_price=listing_in.ai_estimated_min_price,
+        ai_estimated_max_price=listing_in.ai_estimated_max_price,
         status=listing_in.status or "active"
     )
     db.add(listing)
     db.commit()
     db.refresh(listing)
     return listing
+
+
+@router.get("/seller/me", response_model=List[ListingResponse])
+def get_my_seller_listings(
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["seller", "admin"]))
+):
+    """Retrieve all listings owned by the authenticated seller."""
+    query = db.query(Listing).filter(Listing.seller_id == current_user.id)
+    if status:
+        query = query.filter(Listing.status == status)
+    return query.order_by(Listing.created_at.desc()).all()
+
 
 
 @router.get("", response_model=List[ListingResponse])

@@ -52,12 +52,29 @@ class MaterialClassificationService:
             r_mean, g_mean, b_mean = img_arr[:, :, 0].mean(), img_arr[:, :, 1].mean(), img_arr[:, :, 2].mean()
             r_std, g_std, b_std = img_arr[:, :, 0].std(), img_arr[:, :, 1].std(), img_arr[:, :, 2].std()
 
-            # Analyze filename keywords if present
-            fn_lower = filename.lower()
+            # Check aliases first or categories
+            ALIASES = {
+                "aluminium": "Aluminum",
+                "aluminum": "Aluminum",
+                "copper": "Copper",
+                "plastic": "Plastic",
+                "steel": "Steel",
+                "iron": "Steel",
+                "metal": "Steel",
+                "paper": "Paper",
+                "cardboard": "Cardboard",
+                "glass": "Glass",
+                "textile": "Textile",
+                "fabric": "Textile",
+                "cloth": "Textile",
+                "e-waste": "E-waste",
+                "ewaste": "E-waste",
+                "electronics": "E-waste"
+            }
             detected_from_name = None
-            for cat in CATEGORIES:
-                if cat.lower() in fn_lower:
-                    detected_from_name = cat
+            for key, val in ALIASES.items():
+                if key in fn_lower:
+                    detected_from_name = val
                     break
 
             if detected_from_name:
@@ -104,10 +121,16 @@ class MaterialClassificationService:
                 "is_fallback": False
             }
         except Exception as e:
-            # Clean fallback
+            # Check filename before giving up completely
+            fn_lower = filename.lower()
+            detected = "Other"
+            for key, val in {"aluminium": "Aluminum", "aluminum": "Aluminum", "copper": "Copper", "plastic": "Plastic", "steel": "Steel", "paper": "Paper", "cardboard": "Cardboard", "glass": "Glass", "textile": "Textile", "e-waste": "E-waste"}.items():
+                if key in fn_lower:
+                    detected = val
+                    break
             return {
-                "material": "Other",
-                "confidence": 0.50,
+                "material": detected,
+                "confidence": 0.85 if detected != "Other" else 0.50,
                 "secondary_classes": [],
                 "model_name": self.model_name,
                 "model_version": self.model_version,

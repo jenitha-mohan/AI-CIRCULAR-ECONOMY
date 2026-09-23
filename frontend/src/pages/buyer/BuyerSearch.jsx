@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Building2, ShoppingBag, Sparkles, Filter, CheckCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  Search,
+  MapPin,
+  Building2,
+  Handshake,
+  Sparkles,
+  Filter,
+  CheckCircle,
+  AlertCircle,
+  Tag
+} from 'lucide-react';
 import api from '../../api/client';
 import Badge from '../../components/Badge';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -10,13 +21,18 @@ export const BuyerSearch = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [maxDistance, setMaxDistance] = useState(150);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedQuality, setSelectedQuality] = useState('All');
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isBuying, setIsBuying] = useState(false);
-  const [buySuccess, setBuySuccess] = useState(false);
+
+  // Offer submission state
+  const [offeredQuantity, setOfferedQuantity] = useState('');
+  const [offeredPrice, setOfferedPrice] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+  const [offerSuccess, setOfferSuccess] = useState(false);
+  const [offerError, setOfferError] = useState('');
 
   const CATEGORIES = ['All', 'Aluminum', 'Copper', 'Steel', 'Plastic', 'Cardboard', 'Paper', 'Glass', 'Textile', 'E-waste', 'Other'];
 
@@ -24,7 +40,7 @@ export const BuyerSearch = () => {
     setLoading(true);
     try {
       const res = await api.get('/api/materials?status=available');
-      setMaterials(res.data);
+      setMaterials(res.data || []);
     } catch (err) {
       console.error('Error searching materials:', err);
     } finally {
@@ -39,7 +55,8 @@ export const BuyerSearch = () => {
   const filtered = materials.filter((m) => {
     const matchSearch =
       m.material_type.toLowerCase().includes(search.toLowerCase()) ||
-      (m.description && m.description.toLowerCase().includes(search.toLowerCase()));
+      (m.description && m.description.toLowerCase().includes(search.toLowerCase())) ||
+      (m.seller?.organization && m.seller.organization.toLowerCase().includes(search.toLowerCase()));
     const matchCat = selectedCategory === 'All' || m.material_type.toLowerCase() === selectedCategory.toLowerCase();
     const matchQual = selectedQuality === 'All' || m.quality === selectedQuality;
     return matchSearch && matchCat && matchQual;
@@ -47,27 +64,39 @@ export const BuyerSearch = () => {
 
   const handleOpenDetail = (mat) => {
     setSelectedMaterial(mat);
+    const defaultAsk = mat.listings?.[0]?.asking_price || mat.predicted_price || 40.0;
+    setOfferedQuantity(mat.quantity_kg);
+    setOfferedPrice(defaultAsk);
+    setOfferMessage('');
+    setOfferError('');
+    setOfferSuccess(false);
     setIsModalOpen(true);
-    setBuySuccess(false);
   };
 
-  const handleConfirmPurchase = async () => {
+  const handleMakeOffer = async (e) => {
+    e.preventDefault();
     if (!selectedMaterial) return;
-    setIsBuying(true);
+
+    const listingId = selectedMaterial.listings?.[0]?.id;
+    if (!listingId) {
+      setOfferError('No active listing ID found for this material lot.');
+      return;
+    }
+
+    setIsSubmittingOffer(true);
+    setOfferError('');
     try {
-      await api.post('/api/transactions', {
-        listing_id: selectedMaterial.listings?.[0]?.id || null,
-        seller_id: selectedMaterial.seller_id,
-        material_type: selectedMaterial.material_type,
-        quantity_kg: selectedMaterial.quantity_kg,
-        agreed_price: selectedMaterial.predicted_price || 40.0,
+      await api.post('/api/offers', {
+        listing_id: listingId,
+        offered_quantity: parseFloat(offeredQuantity),
+        offered_price: parseFloat(offeredPrice),
+        message: offerMessage || 'Offer placed via Material Search.'
       });
-      setBuySuccess(true);
-      fetchMaterials();
+      setOfferSuccess(true);
     } catch (err) {
-      console.error('Purchase error:', err);
+      setOfferError(err.response?.data?.detail || 'Failed to submit offer.');
     } finally {
-      setIsBuying(false);
+      setIsSubmittingOffer(false);
     }
   };
 
@@ -75,7 +104,7 @@ export const BuyerSearch = () => {
     <div className="space-y-6 pb-12">
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Geospatial Material Sourcing</h1>
-        <p className="text-xs text-slate-500 mt-1">Search proximate industrial recyclables with Haversine distance calculations</p>
+        <p className="text-xs text-slate-500 mt-1">Search proximate industrial recyclables, view AI price ranges, and place bids directly.</p>
       </div>
 
       {/* Filter Bar */}
@@ -100,165 +129,197 @@ export const BuyerSearch = () => {
             >
               <option value="All">All Quality Grades</option>
               <option value="Industrial Grade">Industrial Grade</option>
-              <option value="High">High Grade</option>
-              <option value="Medium">Medium Grade</option>
-              <option value="Low">Low Grade</option>
+              <option value="High">High Purity</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
             </select>
           </div>
 
-          <div className="flex items-center gap-2 px-2 text-xs text-slate-600">
-            <span className="whitespace-nowrap font-medium">Max Transit:</span>
-            <input
-              type="range"
-              min="10"
-              max="500"
-              step="10"
-              value={maxDistance}
-              onChange={(e) => setMaxDistance(Number(e.target.value))}
-              className="w-full accent-eco-600"
-            />
-            <span className="font-bold text-slate-900 min-w-[50px]">{maxDistance} km</span>
-          </div>
-        </div>
-
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap transition-colors ${
-                selectedCategory === cat
-                  ? 'bg-eco-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
-              }`}
+          <div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full py-2 px-3 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500 font-medium text-slate-700"
             >
-              {cat}
-            </button>
-          ))}
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
+      {/* Results */}
       {loading ? (
-        <LoadingSpinner text="Searching proximate recyclables..." />
+        <LoadingSpinner text="Searching proximate batches..." />
       ) : filtered.length === 0 ? (
-        <EmptyState title="No recyclable lots found" description="Adjust your search radius or material filter." />
+        <EmptyState title="No material lots matched your criteria" description="Try adjusting search terms or grades." />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((mat) => (
-            <div
-              key={mat.id}
-              onClick={() => handleOpenDetail(mat)}
-              className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
-            >
-              <div className="aspect-video bg-slate-100 relative overflow-hidden">
-                <img
-                  src={mat.image_url || 'https://images.unsplash.com/photo-1558441719-8b489c6ef147?w=600'}
-                  alt={mat.material_type}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
-                <div className="absolute top-3 left-3">
-                  <Badge variant="eco" size="xs">{mat.material_type}</Badge>
-                </div>
-                <div className="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold">
-                  {mat.quantity_kg} kg
-                </div>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((mat) => {
+            const askPrice = mat.listings?.[0]?.asking_price || mat.predicted_price || 0;
+            const aiMin = mat.listings?.[0]?.ai_estimated_min_price || Math.round(askPrice * 0.95);
+            const aiMax = mat.listings?.[0]?.ai_estimated_max_price || Math.round(askPrice * 1.05);
 
-              <div className="p-5 flex flex-col justify-between flex-grow">
-                <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    {mat.quality} • {mat.condition}
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 line-clamp-1 mb-1.5">
-                    {mat.description || `${mat.quality} ${mat.material_type}`}
-                  </h3>
-                  <div className="text-xs text-slate-500 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-sky-500" />
-                    <span>~24 km from Coimbatore Hub</span>
+            return (
+              <div
+                key={mat.id}
+                onClick={() => handleOpenDetail(mat)}
+                className="bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col cursor-pointer group"
+              >
+                <div className="relative aspect-video bg-slate-100 overflow-hidden">
+                  <img
+                    src={mat.image_url || 'https://images.unsplash.com/photo-1558441719-8b489c6ef147?w=600'}
+                    alt={mat.material_type}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-3 left-3 flex gap-1.5">
+                    <Badge variant="eco" size="xs">{mat.material_type}</Badge>
+                    <Badge variant="default" size="xs">{mat.quality}</Badge>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-4">
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-semibold uppercase">AI Price</div>
-                    <div className="text-base font-extrabold text-emerald-600">
-                      ₹{mat.predicted_price || 40}/kg
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-1.5">
+                    <h3 className="font-bold text-slate-900 text-sm group-hover:text-eco-600 transition-colors">
+                      {mat.description || `${mat.quality} Grade ${mat.material_type}`}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      {mat.seller?.organization || mat.seller?.name || 'Verified Generator'}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 font-semibold">Available Lot:</span>
+                      <span className="font-bold text-slate-800">{mat.quantity_kg.toLocaleString('en-IN')} kg</span>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 font-semibold">Asking Price:</span>
+                      <span className="font-extrabold text-slate-900">₹{askPrice}/kg</span>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-100 rounded-xl px-2.5 py-1 text-[10px] text-purple-800 flex items-center justify-between">
+                      <span>🤖 AI Market Range:</span>
+                      <span className="font-bold">₹{aiMin} – ₹{aiMax}/kg</span>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDetail(mat);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-eco-600 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 mt-2"
+                    >
+                      <Handshake className="w-3.5 h-3.5" />
+                      Make Circular Offer
+                    </button>
                   </div>
-                  <button className="px-3.5 py-1.5 rounded-xl bg-eco-600 text-white font-bold text-xs shadow-sm hover:bg-eco-700 transition-colors">
-                    Procure
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Purchase Modal */}
+      {/* Make Offer Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedMaterial?.material_type || 'Feedstock Details'}
-        subtitle={`Lot ID: ${selectedMaterial?.id?.substring(0, 8)}`}
+        title={selectedMaterial?.material_type || 'Material Lot'}
+        subtitle={`Listing: ${selectedMaterial?.id?.substring(0, 8)}`}
+        maxWidth="max-w-2xl"
       >
         {selectedMaterial && (
           <div className="space-y-6">
-            {buySuccess ? (
+            {offerSuccess ? (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-3">
                 <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto" />
-                <h4 className="text-base font-bold text-emerald-900">Procurement Order Confirmed!</h4>
+                <h4 className="text-base font-bold text-emerald-900">Offer Placed Successfully!</h4>
                 <p className="text-xs text-emerald-700 max-w-sm mx-auto">
-                  Shipment request sent to seller. Carbon displacement credits logged.
+                  Your bid of <strong>₹{offeredPrice}/kg</strong> for <strong>{offeredQuantity} kg</strong> was sent to the seller.
                 </p>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold"
-                >
-                  Done
-                </button>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-800 text-xs font-semibold"
+                  >
+                    Close Window
+                  </button>
+                  <Link
+                    to="/buyer/offers"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
+                  >
+                    Go to Negotiations Portal →
+                  </Link>
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100">
-                  <img
-                    src={selectedMaterial.image_url || 'https://images.unsplash.com/photo-1558441719-8b489c6ef147?w=600'}
-                    alt={selectedMaterial.material_type}
-                    className="w-full h-full object-cover"
+              <form onSubmit={handleMakeOffer} className="space-y-4">
+                {offerError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{offerError}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl text-xs">
+                  <div><span className="text-slate-400 block text-[10px]">Seller Asking Price</span><span className="font-bold text-slate-900">₹{selectedMaterial.listings?.[0]?.asking_price || selectedMaterial.predicted_price}/kg</span></div>
+                  <div><span className="text-slate-400 block text-[10px]">AI Estimate Range</span><span className="font-bold text-purple-700">₹{selectedMaterial.listings?.[0]?.ai_estimated_min_price || 0} – ₹{selectedMaterial.listings?.[0]?.ai_estimated_max_price || 0}/kg</span></div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Offered Quantity (kg) *</label>
+                  <input
+                    type="number"
+                    required
+                    step="1"
+                    max={selectedMaterial.quantity_kg}
+                    value={offeredQuantity}
+                    onChange={(e) => setOfferedQuantity(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 text-xs">
-                  <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Available Batch</span>
-                    <span className="font-bold text-slate-900 text-sm">{selectedMaterial.quantity_kg} kg</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Quality Grade</span>
-                    <span className="font-bold text-slate-900 text-sm">{selectedMaterial.quality}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Price per kg</span>
-                    <span className="font-extrabold text-emerald-600 text-sm">₹{selectedMaterial.predicted_price}/kg</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Total Cost</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      ₹{(selectedMaterial.predicted_price * selectedMaterial.quantity_kg).toLocaleString('en-IN')}
-                    </span>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Offered Price (₹ per kg) *</label>
+                  <input
+                    type="number"
+                    required
+                    step="0.1"
+                    value={offeredPrice}
+                    onChange={(e) => setOfferedPrice(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Message for Seller (Optional)</label>
+                  <textarea
+                    rows="2"
+                    value={offerMessage}
+                    onChange={(e) => setOfferMessage(e.target.value)}
+                    placeholder="e.g. Seeking immediate dispatch to our Coimbatore processing facility."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
+                  <span>Total Bid Value:</span>
+                  <strong className="text-emerald-700 text-sm">
+                    ₹{((parseFloat(offeredQuantity) || 0) * (parseFloat(offeredPrice) || 0)).toLocaleString('en-IN')}
+                  </strong>
                 </div>
 
                 <button
-                  onClick={handleConfirmPurchase}
-                  disabled={isBuying}
-                  className="w-full py-3.5 rounded-2xl bg-eco-600 hover:bg-eco-700 text-white font-bold text-sm shadow-md shadow-eco-600/20 transition-all flex items-center justify-center gap-2"
+                  type="submit"
+                  disabled={isSubmittingOffer}
+                  className="w-full py-3 rounded-xl bg-eco-600 hover:bg-eco-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                  {isBuying ? 'Confirming Order...' : 'Confirm Feedstock Purchase'}
+                  <Handshake className="w-4 h-4" />
+                  {isSubmittingOffer ? 'Submitting...' : 'Submit Offer'}
                 </button>
-              </div>
+              </form>
             )}
           </div>
         )}

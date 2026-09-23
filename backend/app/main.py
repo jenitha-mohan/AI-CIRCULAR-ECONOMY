@@ -21,11 +21,14 @@ from backend.app.api.auth import router as auth_router
 from backend.app.api.users import router as users_router
 from backend.app.api.materials import router as materials_router
 from backend.app.api.listings import router as listings_router
+from backend.app.api.offers import router as offers_router
 from backend.app.api.buyers import router as buyers_router
 from backend.app.api.transactions import router as transactions_router
+from backend.app.api.chat import router as chat_router
 from backend.app.api.ml import router as ml_router
 from backend.app.api.recommendations import router as recommendations_router
 from backend.app.api.analytics import router as analytics_router
+
 
 # Logging Setup
 logging.basicConfig(
@@ -78,11 +81,14 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(materials_router)
 app.include_router(listings_router)
+app.include_router(offers_router)
 app.include_router(buyers_router)
 app.include_router(transactions_router)
+app.include_router(chat_router)
 app.include_router(ml_router)
 app.include_router(recommendations_router)
 app.include_router(analytics_router)
+
 
 
 # Global Exception Handlers

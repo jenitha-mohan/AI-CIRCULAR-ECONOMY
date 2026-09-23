@@ -11,7 +11,8 @@ import {
   BarChart3,
   Cpu,
   SlidersHorizontal,
-  Leaf
+  Leaf,
+  Handshake
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,6 +26,7 @@ export const Sidebar = () => {
     { to: '/seller/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/seller/materials/new', label: 'AI Material Studio', icon: PlusCircle, highlight: true },
     { to: '/seller/materials', label: 'My Materials', icon: Package },
+    { to: '/seller/offers', label: 'Offers & Negotiations', icon: Handshake },
     { to: '/seller/recommendations', label: 'Buyer Matches', icon: Sparkles },
     { to: '/seller/transactions', label: 'Transactions', icon: ReceiptText },
   ];
@@ -32,6 +34,7 @@ export const Sidebar = () => {
   const buyerLinks = [
     { to: '/buyer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/buyer/search', label: 'Material Search', icon: Search },
+    { to: '/buyer/offers', label: 'My Offers & Bids', icon: Handshake },
     { to: '/buyer/requirements', label: 'Sourcing Specs', icon: SlidersHorizontal },
     { to: '/buyer/recommendations', label: 'AI Recommended', icon: Sparkles, highlight: true },
     { to: '/buyer/transactions', label: 'Purchases', icon: ReceiptText },

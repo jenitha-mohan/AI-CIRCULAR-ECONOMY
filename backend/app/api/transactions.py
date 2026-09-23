@@ -104,6 +104,8 @@ def get_transaction_by_id(
 
 
 @router.put("/{tx_id}/status", response_model=TransactionResponse)
+@router.post("/{tx_id}/status", response_model=TransactionResponse)
+@router.post("/{tx_id}/update-status", response_model=TransactionResponse)
 def update_transaction_status(
     tx_id: str,
     status_in: TransactionStatusUpdate,
@@ -117,7 +119,93 @@ def update_transaction_status(
     if current_user.role != "admin" and tx.seller_id != current_user.id and tx.buyer_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this transaction")
 
-    tx.status = status_in.status
+    tx.status = status_in.status.upper()
     db.commit()
     db.refresh(tx)
     return tx
+
+
+@router.post("/{tx_id}/schedule-pickup", response_model=TransactionResponse)
+def schedule_transaction_pickup(
+    tx_id: str,
+    pickup_in: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Schedule pickup details (location, date, instructions) and advance status to PICKUP_SCHEDULED.
+    """
+    tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+
+    if current_user.role != "admin" and tx.seller_id != current_user.id and tx.buyer_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this transaction")
+
+    tx.pickup_location = pickup_in.get("pickup_location") or tx.pickup_location
+    if pickup_in.get("pickup_date"):
+        from datetime import datetime
+        try:
+            tx.pickup_date = datetime.fromisoformat(str(pickup_in["pickup_date"]).replace("Z", "+00:00"))
+        except Exception:
+            pass
+    tx.pickup_instructions = pickup_in.get("pickup_instructions") or tx.pickup_instructions
+    tx.status = "PICKUP_SCHEDULED"
+
+    db.commit()
+    db.refresh(tx)
+    return tx
+
+
+@router.post("/{tx_id}/complete", response_model=TransactionResponse)
+def complete_transaction(
+    tx_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mark transaction as COMPLETED.
+    """
+    tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+
+    if current_user.role != "admin" and tx.seller_id != current_user.id and tx.buyer_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to complete this transaction")
+
+    tx.status = "COMPLETED"
+    db.commit()
+    db.refresh(tx)
+    return tx
+
+
+@router.post("/{tx_id}/cancel", response_model=TransactionResponse)
+def cancel_transaction(
+    tx_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cancel transaction and restore listing inventory if applicable.
+    """
+    tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+
+    if current_user.role != "admin" and tx.seller_id != current_user.id and tx.buyer_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to cancel this transaction")
+
+    tx.status = "CANCELLED"
+
+    # Restore listing inventory if cancelled before delivery
+    if tx.listing_id:
+        listing = db.query(Listing).filter(Listing.id == tx.listing_id).first()
+        if listing:
+            listing.quantity_available += tx.quantity_kg
+            if listing.status == "sold":
+                listing.status = "active"
+
+    db.commit()
+    db.refresh(tx)
+    return tx
+

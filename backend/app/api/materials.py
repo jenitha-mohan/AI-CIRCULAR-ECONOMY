@@ -87,24 +87,23 @@ def create_material(
         MaterialCategory.name.ilike(f"%{material_in.material_type}%")
     ).first()
 
-    # If predicted price not provided, compute with AI Price Regressor
-    pred_price = material_in.predicted_price
-    if pred_price is None:
-        ai_res = price_prediction_service.predict_price({
-            "material_type": material_in.material_type,
-            "weight_kg": material_in.quantity_kg,
-            "quality": material_in.quality,
-            "location": current_user.location.city if current_user.location else "Coimbatore",
-            "demand_level": "Moderate",
-            "historical_price": 40.0,
-            "processing_cost": 5.0,
-            "transportation_distance": 20.0,
-            "month": 9,
-            "seller_type": "Business",
-            "buyer_demand": 0.8,
-            "material_condition": material_in.condition
-        })
-        pred_price = ai_res["predicted_price_per_kg"]
+    ai_res = price_prediction_service.predict_price({
+        "material_type": material_in.material_type,
+        "weight_kg": material_in.quantity_kg,
+        "quality": material_in.quality,
+        "location": current_user.location.city if current_user.location else "Coimbatore",
+        "demand_level": "Moderate",
+        "historical_price": material_in.predicted_price or 40.0,
+        "processing_cost": 5.0,
+        "transportation_distance": 20.0,
+        "month": 9,
+        "seller_type": "Business",
+        "buyer_demand": 0.8,
+        "material_condition": material_in.condition
+    })
+    ai_pred = ai_res["predicted_price_per_kg"]
+    ai_min = ai_res.get("estimated_min_price", round(ai_pred * 0.95, 2))
+    ai_max = ai_res.get("estimated_max_price", round(ai_pred * 1.05, 2))
 
     material = Material(
         seller_id=current_user.id,
@@ -116,19 +115,21 @@ def create_material(
         condition=material_in.condition,
         intended_purpose=material_in.intended_purpose,
         image_url=material_in.image_url,
-        predicted_price=pred_price,
+        predicted_price=material_in.predicted_price or ai_pred,
         status=material_in.status or "available"
     )
     db.add(material)
     db.flush()
 
     # Automatically create marketplace listing
-    final_ask_price = asking_price if asking_price is not None else pred_price
+    final_ask_price = asking_price if asking_price is not None else (material_in.predicted_price or ai_pred)
     listing = Listing(
         seller_id=current_user.id,
         material_id=material.id,
         quantity_available=material.quantity_kg,
         asking_price=final_ask_price,
+        ai_estimated_min_price=ai_min,
+        ai_estimated_max_price=ai_max,
         status="active"
     )
     db.add(listing)
