@@ -1,0 +1,61 @@
+buyer_id,name,material_type,min_quantity_kg,max_quantity_kg,quality_required,intended_purpose,max_price_per_kg,city,state,latitude,longitude
+BUY-1000,EcoMetal Industries #1,Cardboard,200,400,High,Repurposing,15.5,Hyderabad,Telangana,17.385,78.4867
+BUY-1001,BioTex Upcyclers #2,Paper,100,2000,Medium,Repurposing,13.93,Surat,Gujarat,21.1702,72.8311
+BUY-1002,GreenPlast Recyclers #3,Plastic,500,2500,Medium,Repurposing,42.42,Hyderabad,Telangana,17.385,78.4867
+BUY-1003,Sunrise Cardboard Packaging #4,Cardboard,1000,2000,Low,Direct Reuse,17.21,Chennai,Tamil Nadu,13.0827,80.2707
+BUY-1004,Vanguard Industrial Scrap #5,Other,200,1000,High,Upcycling,16.02,Bengaluru,Karnataka,12.9716,77.5946
+BUY-1005,BioTex Upcyclers #6,E-waste,500,1000,Medium,Upcycling,138.09,Chennai,Tamil Nadu,13.0827,80.2707
+BUY-1006,GreenPlast Recyclers #7,E-waste,500,10000,High,Upcycling,138.26,Kolkata,West Bengal,22.5726,88.3639
+BUY-1007,Bharat Paper Mill #8,Other,500,2500,Industrial Grade,Direct Reuse,17.34,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1008,GreenPlast Recyclers #9,Aluminum,50,250,High,Repurposing,206.31,Pune,Maharashtra,18.5204,73.8567
+BUY-1009,GreenPlast Recyclers #10,Steel,1000,5000,Industrial Grade,Upcycling,49.15,Kolkata,West Bengal,22.5726,88.3639
+BUY-1010,Zenith Glass Works #11,Glass,100,200,Medium,Upcycling,9.66,Surat,Gujarat,21.1702,72.8311
+BUY-1011,Vanguard Industrial Scrap #12,Cardboard,200,4000,Low,Upcycling,16.36,Chennai,Tamil Nadu,13.0827,80.2707
+BUY-1012,CleanEarth Circular Solutions #13,Textile,1000,5000,Medium,Upcycling,29.64,Surat,Gujarat,21.1702,72.8311
+BUY-1013,Apex Copper Smelting #14,Paper,500,1000,High,Direct Reuse,13.64,Kolkata,West Bengal,22.5726,88.3639
+BUY-1014,Nilgiri Eco Fibers #15,Steel,50,1000,Industrial Grade,Recycling,44.64,Hyderabad,Telangana,17.385,78.4867
+BUY-1015,Coimbatore Sustainable Plastics #16,Paper,500,1000,High,Direct Reuse,14.29,Delhi,Delhi,28.7041,77.1025
+BUY-1016,GreenPlast Recyclers #17,Steel,50,500,Low,Repurposing,44.98,Kolkata,West Bengal,22.5726,88.3639
+BUY-1017,Nilgiri Eco Fibers #18,Steel,1000,5000,Industrial Grade,Upcycling,46.49,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1018,ElectroWaste Refiners #19,Paper,200,4000,Medium,Upcycling,14.56,Kolkata,West Bengal,22.5726,88.3639
+BUY-1019,Zenith Glass Works #20,Cardboard,50,1000,Medium,Upcycling,16.93,Delhi,Delhi,28.7041,77.1025
+BUY-1020,ElectroWaste Refiners #21,Textile,500,2500,Low,Recycling,33.35,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1021,BioTex Upcyclers #22,Cardboard,1000,2000,Industrial Grade,Direct Reuse,16.86,Surat,Gujarat,21.1702,72.8311
+BUY-1022,Bharat Paper Mill #23,Copper,1000,10000,Medium,Repurposing,735.11,Delhi,Delhi,28.7041,77.1025
+BUY-1023,ReCycle India Corp #24,Plastic,500,5000,Industrial Grade,Recycling,43.09,Hyderabad,Telangana,17.385,78.4867
+BUY-1024,Zenith Glass Works #25,Paper,100,1000,Industrial Grade,Repurposing,13.76,Pune,Maharashtra,18.5204,73.8567
+BUY-1025,ElectroWaste Refiners #26,Cardboard,1000,5000,Low,Direct Reuse,16.11,Pune,Maharashtra,18.5204,73.8567
+BUY-1026,BioTex Upcyclers #27,Copper,1000,5000,Industrial Grade,Direct Reuse,723.07,Kolkata,West Bengal,22.5726,88.3639
+BUY-1027,Nilgiri Eco Fibers #28,Other,100,2000,High,Direct Reuse,16.14,Bengaluru,Karnataka,12.9716,77.5946
+BUY-1028,Bharat Paper Mill #29,Glass,100,1000,Industrial Grade,Repurposing,9.42,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1029,Apex Copper Smelting #30,Copper,1000,5000,Low,Recycling,801.21,Ahmedabad,Gujarat,23.0225,72.5714
+BUY-1030,Sunrise Cardboard Packaging #31,Copper,100,2000,Industrial Grade,Upcycling,781.83,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1031,Coimbatore Sustainable Plastics #32,Paper,100,200,Low,Upcycling,13.78,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1032,GreenPlast Recyclers #33,Steel,1000,2000,Industrial Grade,Direct Reuse,46.78,Delhi,Delhi,28.7041,77.1025
+BUY-1033,GreenPlast Recyclers #34,Aluminum,500,1000,Industrial Grade,Recycling,220.2,Kolkata,West Bengal,22.5726,88.3639
+BUY-1034,Terra Polymer Hub #35,Cardboard,1000,5000,High,Upcycling,15.06,Hyderabad,Telangana,17.385,78.4867
+BUY-1035,Bharat Paper Mill #36,Aluminum,500,5000,Low,Upcycling,201.92,Bengaluru,Karnataka,12.9716,77.5946
+BUY-1036,EcoMetal Industries #37,Copper,200,4000,Low,Direct Reuse,724.01,Delhi,Delhi,28.7041,77.1025
+BUY-1037,Bharat Paper Mill #38,Cardboard,100,500,High,Recycling,16.62,Delhi,Delhi,28.7041,77.1025
+BUY-1038,Vanguard Industrial Scrap #39,E-waste,200,4000,High,Direct Reuse,149.78,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1039,ElectroWaste Refiners #40,Plastic,200,400,High,Repurposing,36.8,Kolkata,West Bengal,22.5726,88.3639
+BUY-1040,EcoMetal Industries #41,Textile,50,1000,High,Direct Reuse,30.48,Delhi,Delhi,28.7041,77.1025
+BUY-1041,GreenPlast Recyclers #42,E-waste,500,1000,Medium,Direct Reuse,133.0,Delhi,Delhi,28.7041,77.1025
+BUY-1042,Titanium & Steel Works #43,Textile,500,1000,High,Direct Reuse,30.59,Surat,Gujarat,21.1702,72.8311
+BUY-1043,Sunrise Cardboard Packaging #44,Textile,500,5000,Industrial Grade,Direct Reuse,34.14,Surat,Gujarat,21.1702,72.8311
+BUY-1044,Titanium & Steel Works #45,Paper,50,1000,Medium,Direct Reuse,14.46,Delhi,Delhi,28.7041,77.1025
+BUY-1045,Apex Copper Smelting #46,Textile,200,1000,Medium,Upcycling,33.95,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1046,Bharat Paper Mill #47,Other,500,10000,Industrial Grade,Recycling,17.39,Surat,Gujarat,21.1702,72.8311
+BUY-1047,Sunrise Cardboard Packaging #48,Copper,500,5000,High,Direct Reuse,696.54,Kolkata,West Bengal,22.5726,88.3639
+BUY-1048,Vanguard Industrial Scrap #49,Aluminum,500,2500,Low,Repurposing,198.36,Hyderabad,Telangana,17.385,78.4867
+BUY-1049,GreenPlast Recyclers #50,Steel,50,250,Industrial Grade,Recycling,51.37,Delhi,Delhi,28.7041,77.1025
+BUY-1050,Apex Copper Smelting #51,Other,50,500,Low,Upcycling,18.58,Hyderabad,Telangana,17.385,78.4867
+BUY-1051,GreenPlast Recyclers #52,Steel,100,1000,Low,Direct Reuse,51.08,Chennai,Tamil Nadu,13.0827,80.2707
+BUY-1052,Coimbatore Sustainable Plastics #53,Other,50,100,Industrial Grade,Upcycling,16.78,Surat,Gujarat,21.1702,72.8311
+BUY-1053,BioTex Upcyclers #54,Cardboard,100,500,High,Repurposing,16.49,Ahmedabad,Gujarat,23.0225,72.5714
+BUY-1054,BioTex Upcyclers #55,Glass,1000,5000,Industrial Grade,Recycling,9.44,Ahmedabad,Gujarat,23.0225,72.5714
+BUY-1055,Titanium & Steel Works #56,Copper,200,400,Medium,Repurposing,745.64,Coimbatore,Tamil Nadu,11.0168,76.9558
+BUY-1056,ElectroWaste Refiners #57,Textile,1000,10000,Medium,Upcycling,33.43,Ahmedabad,Gujarat,23.0225,72.5714
+BUY-1057,Apex Copper Smelting #58,Paper,500,10000,Medium,Repurposing,12.79,Surat,Gujarat,21.1702,72.8311
+BUY-1058,BioTex Upcyclers #59,E-waste,200,4000,High,Upcycling,126.72,Pune,Maharashtra,18.5204,73.8567
+BUY-1059,Coimbatore Sustainable Plastics #60,Paper,200,400,Medium,Direct Reuse,14.77,Pune,Maharashtra,18.5204,73.8567

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Database Service (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: circular_economy_db
+    restart: always
+    environment:
+      POSTGRES_USER: circular_user
+      POSTGRES_PASSWORD: circular_password_2026
+      POSTGRES_DB: circular_economy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U circular_user -d circular_economy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend & ML Service
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: circular_economy_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: "AI Circular Economy Marketplace"
+      APP_ENV: "production"
+      DATABASE_URL: "postgresql://circular_user:circular_password_2026@db:5432/circular_economy"
+      JWT_SECRET: "circular_economy_super_secret_jwt_key_2026_production_grade"
+      JWT_ALGORITHM: "HS256"
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      ML_MODE: "production"
+      CORS_ORIGINS: "http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+
+  # React Vite Frontend SPA
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: circular_economy_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  uploads_data:

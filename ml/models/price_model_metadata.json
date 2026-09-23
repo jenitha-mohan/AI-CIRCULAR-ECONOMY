@@ -1,0 +1,95 @@
+{
+  "model_name": "ai_price_regressor",
+  "model_version": "1.0.0",
+  "algorithm": "Gradient Boosting",
+  "training_timestamp": "2026-09-21T14:54:13.388750",
+  "evaluation_metrics": {
+    "test_mae": 3.74,
+    "test_rmse": 8.8,
+    "test_r2": 0.9979
+  },
+  "model_comparison": {
+    "Linear Regression": {
+      "validation": {
+        "mae": 30.151,
+        "rmse": 54.585,
+        "r2": 0.9343
+      },
+      "test": {
+        "mae": 25.945,
+        "rmse": 47.7,
+        "r2": 0.9381
+      }
+    },
+    "Ridge Regression": {
+      "validation": {
+        "mae": 30.217,
+        "rmse": 54.791,
+        "r2": 0.9338
+      },
+      "test": {
+        "mae": 25.877,
+        "rmse": 47.595,
+        "r2": 0.9384
+      }
+    },
+    "Random Forest": {
+      "validation": {
+        "mae": 9.118,
+        "rmse": 20.23,
+        "r2": 0.991
+      },
+      "test": {
+        "mae": 6.821,
+        "rmse": 15.358,
+        "r2": 0.9936
+      }
+    },
+    "Gradient Boosting": {
+      "validation": {
+        "mae": 6.161,
+        "rmse": 15.839,
+        "r2": 0.9945
+      },
+      "test": {
+        "mae": 4.529,
+        "rmse": 10.924,
+        "r2": 0.9968
+      }
+    }
+  },
+  "feature_importance_ranking": {
+    "historical_price": 73.81,
+    "material_type": 18.58,
+    "quality": 3.14,
+    "material_condition": 2.68,
+    "demand_level": 1.52,
+    "weight_kg": 0.08,
+    "transportation_distance": 0.05,
+    "month": 0.04,
+    "buyer_demand": 0.03,
+    "seller_type": 0.03,
+    "processing_cost": 0.03,
+    "location": 0.02
+  },
+  "input_features": {
+    "numerical": [
+      "weight_kg",
+      "historical_price",
+      "processing_cost",
+      "transportation_distance",
+      "month",
+      "buyer_demand"
+    ],
+    "categorical": [
+      "material_type",
+      "quality",
+      "location",
+      "demand_level",
+      "seller_type",
+      "material_condition"
+    ]
+  },
+  "target_currency": "INR",
+  "disclaimer": "DEVELOPMENT BENCHMARK MODEL \u2014 PREDICTIONS FOR ESTIMATION PURPOSES"
+}

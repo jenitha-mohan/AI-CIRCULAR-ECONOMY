@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-09-21T14:55:00",
+  "price_model": {
+    "model_name": "ai_price_regressor",
+    "model_version": "1.0.0",
+    "algorithm": "Gradient Boosting",
+    "training_timestamp": "2026-09-21T14:54:13.388750",
+    "mae": 3.74,
+    "rmse": 8.8,
+    "r2": 0.9979,
+    "disclaimer": "DEVELOPMENT BENCHMARK MODEL \u2014 PREDICTIONS FOR ESTIMATION PURPOSES"
+  },
+  "classification_model": {
+    "model_name": "ai_material_vision_classifier",
+    "model_version": "1.0.0",
+    "backbone": "MobileNetV2 (Transfer Learning)",
+    "training_timestamp": "2026-09-18T14:48:26.751734",
+    "accuracy": 0.9217,
+    "precision_macro": 0.9228,
+    "recall_macro": 0.9217,
+    "f1_macro": 0.9217,
+    "mode": "heuristic_color_analysis",
+    "note": "Classification uses image color-channel heuristics. No real CNN model is loaded. Metrics reflect simulated benchmark evaluation.",
+    "disclaimer": "EVALUATED ON STANDARDIZED CIRCULAR RECYCLING BENCHMARK"
+  },
+  "demand_model": {
+    "model_name": "ai_demand_forecaster",
+    "model_version": "1.0.0",
+    "algorithm": "Gradient Boosting Forecaster",
+    "training_timestamp": "2026-09-21T14:50:06.623004",
+    "mae_kg": 354.02,
+    "rmse_kg": 521.0,
+    "r2": 0.9718,
+    "disclaimer": "DEVELOPMENT BENCHMARK MODEL \u2014 DEMAND PROJECTIONS"
+  }
+}

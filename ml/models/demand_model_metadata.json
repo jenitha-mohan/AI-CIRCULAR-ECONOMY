@@ -1,0 +1,43 @@
+{
+  "model_name": "ai_demand_forecaster",
+  "model_version": "1.0.0",
+  "algorithm": "Gradient Boosting Forecaster",
+  "training_timestamp": "2026-09-21T14:50:06.623004",
+  "evaluation_metrics": {
+    "test_mae_kg": 354.02,
+    "test_rmse_kg": 521.0,
+    "test_r2": 0.9718
+  },
+  "model_comparison": {
+    "Random Forest Forecaster": {
+      "val_mae": 291.04,
+      "val_rmse": 438.18,
+      "val_r2": 0.9761,
+      "test_mae": 355.85,
+      "test_rmse": 506.05,
+      "test_r2": 0.9734
+    },
+    "Gradient Boosting Forecaster": {
+      "val_mae": 290.12,
+      "val_rmse": 436.94,
+      "val_r2": 0.9763,
+      "test_mae": 329.54,
+      "test_rmse": 475.2,
+      "test_r2": 0.9765
+    }
+  },
+  "features": [
+    "material_type",
+    "month",
+    "quarter",
+    "day_of_week",
+    "day_of_year",
+    "lag_1",
+    "lag_7",
+    "lag_30",
+    "rolling_mean_7",
+    "rolling_mean_30",
+    "rolling_std_7"
+  ],
+  "disclaimer": "DEVELOPMENT BENCHMARK MODEL \u2014 DEMAND PROJECTIONS"
+}
