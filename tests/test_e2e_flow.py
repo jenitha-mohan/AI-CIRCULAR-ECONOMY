@@ -94,7 +94,7 @@ def test_complete_e2e_marketplace_journey_and_price_separation(client, db_sessio
         "ai_estimated_max_price": ai_max,
         "status": "active"
     }, headers={"Authorization": f"Bearer {seller_token}"})
-    assert listing_res.status_code == 200
+    assert listing_res.status_code == 201
     listing_data = listing_res.json()
     listing_id = listing_data["id"]
     assert listing_data["asking_price"] == 200.0
