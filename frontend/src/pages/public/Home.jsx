@@ -41,121 +41,129 @@ export const Home = () => {
     <div className="space-y-16 pb-20">
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28">
-        {/* Background gradient blur */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-gradient-to-tr from-eco-400/20 to-emerald-300/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-eco-50 border border-eco-200 text-eco-800 text-xs font-semibold mb-6 shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-eco-600" />
-            <span>Next-Generation AI for the Circular Economy</span>
+            <span>AI Circular Economy Marketplace</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight max-w-4xl mx-auto leading-[1.15]">
-            Turn Industrial & Recyclable Waste into <span className="text-transparent bg-clip-text bg-gradient-to-r from-eco-600 to-emerald-500">Circular Value</span>
+            Turn Waste Into <span className="text-transparent bg-clip-text bg-gradient-to-r from-eco-600 to-emerald-500">Value</span>
           </h1>
 
           <p className="mt-6 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            AI-powered marketplace with computer vision material classification, precision machine learning price forecasting, and transparent geospatial matching for buyers and sellers.
+            An AI-powered marketplace that connects sellers of recyclable materials with buyers who need them.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
-              to="/seller/materials/new"
+              to="/register/seller"
               className="px-6 py-3.5 rounded-2xl bg-eco-600 hover:bg-eco-700 text-white font-bold text-sm shadow-md shadow-eco-600/25 transition-all hover:scale-[1.02] flex items-center gap-2"
             >
-              <Sparkles className="w-4 h-4" />
-              Analyze Material with AI
+              Register as Seller
             </Link>
             <Link
-              to="/marketplace"
-              className="px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-sm transition-all hover:scale-[1.02] flex items-center gap-2"
+              to="/register/buyer"
+              className="px-6 py-3.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-md shadow-sky-600/25 transition-all hover:scale-[1.02] flex items-center gap-2"
             >
-              Explore Recyclables
-              <ArrowRight className="w-4 h-4 text-slate-400" />
+              Register as Buyer
             </Link>
-          </div>
-
-          {/* Quick trust metrics */}
-          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div className="text-2xl font-extrabold text-slate-900">
-                {(stats?.materials_recovered_kg || 48500).toLocaleString('en-IN')} kg
-              </div>
-              <div className="text-xs font-semibold text-slate-500 mt-1">Materials Recovered</div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div className="text-2xl font-extrabold text-emerald-600">
-                {(stats?.estimated_co2_avoided_kg || 112400).toLocaleString('en-IN')} kg
-              </div>
-              <div className="text-xs font-semibold text-slate-500 mt-1">Estimated CO₂ Avoided</div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div className="text-2xl font-extrabold text-slate-900">92.2%</div>
-              <div className="text-xs font-semibold text-slate-500 mt-1">AI Vision Accuracy</div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div className="text-2xl font-extrabold text-slate-900">
-                0.996 R²
-              </div>
-              <div className="text-xs font-semibold text-slate-500 mt-1">Price Regressor Fit</div>
-            </div>
+            <Link
+              to="/login"
+              className="px-6 py-3.5 rounded-2xl bg-white text-slate-700 hover:bg-slate-50 font-bold text-sm border border-slate-200 shadow-sm transition-all hover:scale-[1.02] flex items-center gap-2"
+            >
+              Login
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* 3 Core AI Modules Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* How It Works Section */}
+      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-slate-50 py-16 rounded-3xl">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <Badge variant="eco" size="sm">Proprietary AI Pipeline</Badge>
-          <h2 className="text-3xl font-extrabold text-slate-900 mt-3">
-            Intelligent Data Science Subsystems
+          <h2 className="text-3xl font-extrabold text-slate-900">
+            How It Works
           </h2>
-          <p className="text-sm text-slate-600 mt-2">
-            Integrated machine learning models working in unison to eliminate friction in the secondary materials market.
+          <p className="text-sm text-slate-600 mt-3">
+            A simple, transparent process to list and sell recyclable materials.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Feature 1 */}
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-6">
-              <Cpu className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Computer Vision Classification</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Upload photos of recyclables. MobileNetV2 transfer learning instantly classifies polymers, metals, fiber, and e-waste with confidence scoring.
-            </p>
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-semibold text-purple-700">
-              <CheckCircle2 className="w-4 h-4" /> 10 Circular Waste Taxonomies
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div className="text-4xl font-extrabold text-eco-100 mb-4">01</div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Add Your Waste</h3>
+            <p className="text-sm text-slate-600">Seller uploads recyclable material details and images.</p>
+          </div>
+          
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative">
+            <div className="text-4xl font-extrabold text-eco-100 mb-4">02</div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">AI Analysis</h3>
+            <p className="text-sm text-slate-600">AI identifies the material and provides estimated market price guidance.</p>
           </div>
 
-          {/* Feature 2 */}
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">ML Price Regression</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Gradient Boosting regressor predicts fair market price per kilogram based on purity grade, condition, batch size, demand cycles, and distance.
-            </p>
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-semibold text-emerald-700">
-              <CheckCircle2 className="w-4 h-4" /> Feature Importance & Explainability
-            </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div className="text-4xl font-extrabold text-eco-100 mb-4">03</div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Find Buyers</h3>
+            <p className="text-sm text-slate-600">AI matches the material with suitable buyers based on distance and needs.</p>
           </div>
 
-          {/* Feature 3 */}
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-            <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6">
-              <Layers className="w-6 h-6" />
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div className="text-4xl font-extrabold text-eco-100 mb-4">04</div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Sell & Negotiate</h3>
+            <p className="text-sm text-slate-600">Buyer and seller negotiate and confirm the final deal.</p>
+          </div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm font-bold text-eco-700 bg-eco-50 inline-block px-4 py-2 rounded-lg border border-eco-200">
+            IMPORTANT: AI provides price guidance. The seller decides the asking price.
+          </p>
+        </div>
+      </section>
+
+      {/* AI Features Section */}
+      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <Badge variant="eco" size="sm">Powered by AI</Badge>
+          <h2 className="text-3xl font-extrabold text-slate-900 mt-3">
+            AI Features
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+              <Cpu className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Smart Haversine Matching</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Transparent 5-component weighted matchmaking formula pairing sellers with local verified recyclers and remanufacturers to minimize transport costs.
-            </p>
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-semibold text-sky-700">
-              <CheckCircle2 className="w-4 h-4" /> Transparent Match Explanations
+            <h3 className="text-base font-bold text-slate-900 mb-2">AI Material Identification</h3>
+            <p className="text-sm text-slate-600">Identify recyclable materials automatically from uploaded images.</p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+              <TrendingUp className="w-5 h-5" />
             </div>
+            <h3 className="text-base font-bold text-slate-900 mb-2">AI Price Guidance</h3>
+            <p className="text-sm text-slate-600">Estimate the market value using historical and material data.</p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4">
+              <Layers className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-2">Smart Buyer Matching</h3>
+            <p className="text-sm text-slate-600">Find buyers based on material, quantity, quality and location.</p>
+          </div>
+          
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+              <Globe2 className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-2">Demand Insights</h3>
+            <p className="text-sm text-slate-600">Understand demand trends for recyclable materials.</p>
           </div>
         </div>
       </section>

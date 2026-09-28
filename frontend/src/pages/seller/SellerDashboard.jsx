@@ -108,58 +108,58 @@ export const SellerDashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="eco" size="xs">Seller Command Center</Badge>
-            <span className="text-xs text-slate-400">• {user?.organization || user?.name}</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Inventory & Circular Sales
+            Welcome, {user?.name || 'Seller'} 👋
           </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Manage your recyclable materials and connect with suitable buyers.
+          </p>
         </div>
 
         <Link
-          to="/seller/materials/new"
+          to="/seller/listings/new"
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-eco-600 hover:bg-eco-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-eco-600/20 transition-all hover:scale-[1.02]"
         >
           <PlusCircle className="w-4 h-4" />
-          List New Material with AI
+          Add Your First Waste
         </Link>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Active Listings"
+          title="Total Listings"
           value={materials.length}
-          unit="lots"
-          change="+2 this week"
-          changeType="increase"
+          unit=""
+          change=""
+          changeType="neutral"
           icon={Package}
           color="eco"
         />
         <MetricCard
-          title="Total Recyclables Sold"
-          value={totalSoldVolume.toLocaleString('en-IN')}
-          unit="kg"
-          change="+18.4% MoM"
-          changeType="increase"
-          icon={Scale}
+          title="Active Listings"
+          value={materials.length}
+          unit=""
+          change=""
+          changeType="neutral"
+          icon={TrendingUp}
           color="blue"
         />
         <MetricCard
-          title="Estimated Inventory Value"
-          value={`₹${totalValue.toLocaleString('en-IN')}`}
-          change="AI Market Valuation"
+          title="Pending Offers"
+          value={0}
+          unit=""
+          change=""
           changeType="neutral"
-          icon={TrendingUp}
+          icon={Users}
           color="amber"
         />
         <MetricCard
           title="Completed Transactions"
           value={soldTxs.length}
-          unit="orders"
-          change="100% Fulfilled"
-          changeType="increase"
+          unit=""
+          change=""
+          changeType="neutral"
           icon={ReceiptText}
           color="purple"
         />
@@ -251,7 +251,7 @@ export const SellerDashboard = () => {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Recent Material Listings</h3>
+                  <h3 className="text-base font-bold text-slate-900">Recent Listings</h3>
                   <p className="text-xs text-slate-500">Live active inventory items</p>
                 </div>
                 <Link to="/seller/materials" className="text-xs font-bold text-eco-600 hover:text-eco-700">
@@ -259,40 +259,54 @@ export const SellerDashboard = () => {
                 </Link>
               </div>
 
-              <div className="divide-y divide-slate-100">
-                {materials.slice(0, 4).map((m) => (
-                  <div key={m.id} className="py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
-                        <img
-                          src={m.image_url || 'https://images.unsplash.com/photo-1558441719-8b489c6ef147?w=600'}
-                          alt={m.material_type}
-                          className="w-full h-full object-cover"
-                        />
+              {materials.length === 0 ? (
+                <div className="py-8 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50 mt-4">
+                  <p className="text-sm text-slate-500 mb-4">No listings yet.</p>
+                  <Link
+                    to="/seller/listings/new"
+                    className="inline-block px-4 py-2 bg-eco-600 hover:bg-eco-700 text-white font-bold rounded-xl text-xs transition-colors"
+                  >
+                    Add Your First Waste
+                  </Link>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {materials.slice(0, 4).map((m) => (
+                    <div key={m.id} className="py-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
+                          <img
+                            src={m.image_url || 'https://images.unsplash.com/photo-1558441719-8b489c6ef147?w=600'}
+                            alt={m.material_type}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">{m.material_type}</div>
+                          <div className="text-[11px] text-slate-500">{m.quantity_kg} kg • {m.quality}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900">{m.material_type}</div>
-                        <div className="text-[11px] text-slate-500">{m.quantity_kg} kg • {m.quality} Grade</div>
-                      </div>
-                    </div>
 
-                    <div className="text-right">
-                      <div className="text-xs font-bold text-emerald-600">
-                        ₹{m.predicted_price || 40}/kg
+                      <div className="text-right">
+                        <div className="text-xs font-bold text-emerald-600">
+                          Asking: ₹{m.listings?.[0]?.asking_price || m.predicted_price || 40}/kg
+                        </div>
+                        <Badge variant="eco" size="xs">Active</Badge>
                       </div>
-                      <Badge variant="eco" size="xs">Active</Badge>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <Link
-              to="/seller/materials/new"
-              className="mt-4 w-full py-2.5 rounded-xl bg-slate-50 hover:bg-eco-50 hover:text-eco-700 text-slate-700 font-semibold text-xs border border-slate-200 text-center transition-colors block"
-            >
-              + Upload Another Lot
-            </Link>
+            {materials.length > 0 && (
+              <Link
+                to="/seller/listings/new"
+                className="mt-4 w-full py-2.5 rounded-xl bg-slate-50 hover:bg-eco-50 hover:text-eco-700 text-slate-700 font-semibold text-xs border border-slate-200 text-center transition-colors block"
+              >
+                + Add Your First Waste
+              </Link>
+            )}
           </div>
         </div>
       </div>

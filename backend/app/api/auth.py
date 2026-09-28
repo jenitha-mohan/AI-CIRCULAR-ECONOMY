@@ -30,8 +30,8 @@ def register_user(user_in: UserRegister, db: Session = Depends(get_db)):
     if existing:
         log_security_event("REGISTER_DUPLICATE_EMAIL", detail=f"Email '{user_in.email}' already exists")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email address already exists."
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists."
         )
 
     # Normalize role

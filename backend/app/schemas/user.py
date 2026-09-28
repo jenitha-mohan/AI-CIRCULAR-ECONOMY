@@ -27,13 +27,12 @@ class UserRegister(BaseModel):
     email: EmailStr = Field(..., description="Unique email address")
     password: str = Field(..., min_length=8, max_length=128, description="Strong password")
     role: str = Field(default="seller", description="Role: 'seller', 'buyer', or 'admin'")
-    phone: Optional[str] = Field(default=None, max_length=25, description="Contact phone number")
-    company_name: Optional[str] = Field(default=None, max_length=200, description="Company or business name")
-    organization: Optional[str] = Field(default=None, max_length=200, description="Alternative alias for company_name")
+    phone: str = Field(..., max_length=25, description="Contact phone number (Required)")
+    organization: str = Field(..., max_length=200, description="Company or business name (Required)")
     business_type: Optional[str] = Field(default=None, max_length=100, description="Manufacturer, Recycler, Trader, etc.")
     materials_interested: Optional[str] = Field(default=None, max_length=500, description="Categories interested in (Buyers)")
-    city: Optional[str] = "Coimbatore"
-    state: Optional[str] = "Tamil Nadu"
+    city: str = Field(..., description="Location City (Required)")
+    state: str = Field(default="Tamil Nadu", description="Location State")
     latitude: Optional[float] = 11.0168
     longitude: Optional[float] = 76.9558
 
@@ -42,7 +41,7 @@ class UserRegister(BaseModel):
     def validate_name(cls, v: str) -> str:
         v_clean = v.strip()
         if not v_clean or len(v_clean) < 2:
-            raise ValueError("Name must be at least 2 characters long.")
+            raise ValueError("Name must be at least 2 characters long and not empty spaces.")
         return v_clean
 
     @field_validator("password")
@@ -64,23 +63,30 @@ class UserRegister(BaseModel):
     @classmethod
     def validate_role(cls, v: str) -> str:
         v_clean = str(v).strip().lower()
-        if v_clean not in ["seller", "buyer", "admin"]:
-            raise ValueError("Role must be 'seller', 'buyer', or 'admin'.")
+        if v_clean not in ["seller", "buyer"]:
+            raise ValueError("Role must be 'seller' or 'buyer'. Admins cannot be registered publicly.")
         return v_clean
 
     @field_validator("phone")
     @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
-        if not v:
-            return None
+    def validate_phone(cls, v: str) -> str:
         v_clean = re.sub(r"[^\d+\-\s()]", "", v.strip())
         digits_only = re.sub(r"\D", "", v_clean)
-        if len(digits_only) < 7 or len(digits_only) > 15:
-            raise ValueError("Phone number must contain between 7 and 15 digits.")
+        # Assuming Indian phone numbers are usually 10 digits (without country code) or 12/13 with code
+        if len(digits_only) < 10 or len(digits_only) > 15:
+            raise ValueError("Phone number must contain between 10 and 15 digits.")
         return v_clean
 
-    def get_company_name(self) -> Optional[str]:
-        return self.company_name or self.organization or self.name
+    @field_validator("organization")
+    @classmethod
+    def validate_organization(cls, v: str) -> str:
+        v_clean = v.strip()
+        if not v_clean:
+            raise ValueError("Company name is required.")
+        return v_clean
+
+    def get_company_name(self) -> str:
+        return self.organization
 
 
 class UserLogin(BaseModel):

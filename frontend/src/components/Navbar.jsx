@@ -43,11 +43,17 @@ export const Navbar = () => {
 
             {/* Navigation links */}
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-              <Link to="/marketplace" className="hover:text-eco-600 transition-colors">
-                Explore Materials
+              <Link to="/" className="hover:text-eco-600 transition-colors">
+                Home
               </Link>
+              <a href="/#how-it-works" className="hover:text-eco-600 transition-colors">
+                How It Works
+              </a>
+              <a href="/#features" className="hover:text-eco-600 transition-colors">
+                Features
+              </a>
               <Link to="/about" className="hover:text-eco-600 transition-colors">
-                Sustainability & AI
+                About
               </Link>
               {isAuthenticated && (
                 <Link to={getDashboardLink()} className="hover:text-eco-600 transition-colors flex items-center gap-1.5">
@@ -108,14 +114,21 @@ export const Navbar = () => {
                   to="/login"
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                 >
-                  Log In
+                  Login
                 </Link>
-                <Link
-                  to="/register"
-                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-eco-600 hover:bg-eco-700 text-white shadow-sm shadow-eco-600/20 transition-all"
-                >
-                  Join Marketplace
-                </Link>
+                <div className="relative group">
+                  <button className="px-4 py-2 rounded-xl text-sm font-semibold bg-eco-600 hover:bg-eco-700 text-white shadow-sm shadow-eco-600/20 transition-all flex items-center gap-1">
+                    Register <span className="text-[10px]">▼</span>
+                  </button>
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col overflow-hidden z-50">
+                    <Link to="/register/seller" className="px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-eco-600 transition-colors flex items-center gap-2">
+                      <PlusCircle className="w-4 h-4" /> Register as Seller
+                    </Link>
+                    <Link to="/register/buyer" className="px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-colors flex items-center gap-2 border-t border-slate-100">
+                      <User className="w-4 h-4" /> Register as Buyer
+                    </Link>
+                  </div>
+                </div>
               </div>
             )}
           </div>

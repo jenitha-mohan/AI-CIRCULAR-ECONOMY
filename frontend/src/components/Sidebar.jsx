@@ -24,11 +24,15 @@ export const Sidebar = () => {
 
   const sellerLinks = [
     { to: '/seller/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/seller/materials/new', label: 'AI Material Studio', icon: PlusCircle, highlight: true },
-    { to: '/seller/materials', label: 'My Materials', icon: Package },
-    { to: '/seller/offers', label: 'Offers & Negotiations', icon: Handshake },
-    { to: '/seller/recommendations', label: 'Buyer Matches', icon: Sparkles },
+    { to: '/seller/materials', label: 'My Listings', icon: Package },
+    { to: '/seller/listings/new', label: 'Add Waste', icon: PlusCircle, highlight: true },
+    { to: '/seller/recommendations', label: 'Matching Buyers', icon: Sparkles },
+    { to: '/seller/offers', label: 'Offers', icon: Handshake },
+    { to: '/seller/negotiations', label: 'Negotiations', icon: Handshake },
+    { to: '/seller/analytics', label: 'Analytics', icon: BarChart3 },
     { to: '/seller/transactions', label: 'Transactions', icon: ReceiptText },
+    { to: '/seller/chat', label: 'Chat', icon: Users },
+    { to: '/seller/profile', label: 'Profile', icon: LayoutDashboard },
   ];
 
   const buyerLinks = [

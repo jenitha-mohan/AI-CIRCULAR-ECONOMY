@@ -1,22 +1,34 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Recycle, Lock, Mail, User, Building2, MapPin, ArrowRight, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Recycle, Lock, Mail, User, Building2, MapPin, ArrowRight, AlertCircle, Briefcase, Layers } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const isBuyer = location.pathname.includes('buyer');
+  const roleValue = isBuyer ? 'buyer' : 'seller';
+  const pageTitle = isBuyer ? 'Register as Buyer' : 'Register as Seller';
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'seller',
+    confirmPassword: '',
+    role: roleValue,
     organization: '',
+    business_type: isBuyer ? '' : 'Manufacturer',
+    materials_interested: isBuyer ? 'Polymers, Metals' : '',
     phone: '',
     city: 'Coimbatore',
     state: 'Tamil Nadu',
   });
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, role: roleValue }));
+  }, [roleValue]);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,14 +36,25 @@ export const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (formData.password.length < 8) {
+      setError('Password must contain at least 8 characters.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const user = await register(formData);
-      if (user.role === 'seller') navigate('/seller/dashboard');
-      else if (user.role === 'buyer') navigate('/buyer/dashboard');
-      else navigate('/marketplace');
+      const dataToSubmit = { ...formData };
+      delete dataToSubmit.confirmPassword;
+      await register(dataToSubmit);
+      navigate(`/login?registered=true`);
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.detail || 'Registration failed');
+      setError(err.response?.data?.detail || err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -39,14 +62,14 @@ export const Register = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
-      <div className="max-w-lg w-full space-y-8 bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+      <div className="max-w-xl w-full space-y-8 bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-eco-600 to-emerald-400 flex items-center justify-center text-white shadow-sm mx-auto mb-3">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm mx-auto mb-3 ${isBuyer ? 'bg-gradient-to-tr from-sky-600 to-indigo-400' : 'bg-gradient-to-tr from-eco-600 to-emerald-400'}`}>
             <Recycle className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Create an Account</h2>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{pageTitle}</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Join the circular marketplace as a Seller or Buyer
+            Join the AI Circular Economy Marketplace
           </p>
         </div>
 
@@ -58,28 +81,6 @@ export const Register = () => {
         )}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {/* Role selector */}
-          <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, role: 'seller' })}
-              className={`py-2 rounded-xl text-xs font-bold transition-all ${
-                formData.role === 'seller' ? 'bg-white text-eco-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🌱 Material Seller
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, role: 'buyer' })}
-              className={`py-2 rounded-xl text-xs font-bold transition-all ${
-                formData.role === 'buyer' ? 'bg-white text-eco-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🏭 Recycler / Buyer
-            </button>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
@@ -114,21 +115,73 @@ export const Register = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Organization / Mill</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Company Name</label>
               <div className="relative">
                 <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
+                  required
                   value={formData.organization}
                   onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
-                  placeholder="Green Eco Ltd"
+                  placeholder="Company XYZ"
                 />
               </div>
             </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
+              <div className="relative">
+                <span className="text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold">+91</span>
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full pl-10 pr-3 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
+                  placeholder="9876543210"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {isBuyer ? (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Materials Interested In</label>
+                <div className="relative">
+                  <Layers className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={formData.materials_interested}
+                    onChange={(e) => setFormData({ ...formData, materials_interested: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
+                    placeholder="e.g. PET Bottles, Scrap Metal"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Business Type</label>
+                <div className="relative">
+                  <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <select
+                    value={formData.business_type}
+                    onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
+                  >
+                    <option value="Manufacturer">Manufacturer</option>
+                    <option value="Retailer">Retailer</option>
+                    <option value="Distributor">Distributor</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">City Hub</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Location (City)</label>
               <div className="relative">
                 <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <select
@@ -136,38 +189,55 @@ export const Register = () => {
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
                 >
-                  <option value="Coimbatore">Coimbatore (Tamil Nadu)</option>
-                  <option value="Bengaluru">Bengaluru (Karnataka)</option>
-                  <option value="Chennai">Chennai (Tamil Nadu)</option>
-                  <option value="Hyderabad">Hyderabad (Telangana)</option>
-                  <option value="Mumbai">Mumbai (Maharashtra)</option>
-                  <option value="Pune">Pune (Maharashtra)</option>
-                  <option value="Ahmedabad">Ahmedabad (Gujarat)</option>
-                  <option value="Delhi">Delhi (NCR)</option>
+                  <option value="Coimbatore">Coimbatore</option>
+                  <option value="Bengaluru">Bengaluru</option>
+                  <option value="Chennai">Chennai</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                  <option value="Mumbai">Mumbai</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Ahmedabad">Ahmedabad</option>
+                  <option value="Delhi">Delhi</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
-                placeholder="••••••••"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Confirm Password</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-eco-500/20 focus:border-eco-500"
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-2xl bg-eco-600 hover:bg-eco-700 text-white font-bold text-sm shadow-md shadow-eco-600/20 transition-all flex items-center justify-center gap-2"
+            className={`w-full py-3 rounded-2xl text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-4 ${isBuyer ? 'bg-sky-600 hover:bg-sky-700 shadow-sky-600/20' : 'bg-eco-600 hover:bg-eco-700 shadow-eco-600/20'}`}
           >
             {loading ? 'Creating Account...' : 'Register Account'}
             <ArrowRight className="w-4 h-4" />

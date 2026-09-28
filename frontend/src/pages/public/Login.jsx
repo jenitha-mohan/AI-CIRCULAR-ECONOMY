@@ -1,20 +1,30 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Recycle, Lock, Mail, ArrowRight, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Recycle, Lock, Mail, ArrowRight, ShieldCheck, UserCheck, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('registered') === 'true') {
+      setSuccess('Seller account created successfully. Please login.');
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       const user = await login(email, password);
@@ -29,23 +39,7 @@ export const Login = () => {
     }
   };
 
-  const handleDemoLogin = async (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError('');
-    setLoading(true);
-    try {
-      const user = await login(demoEmail, demoPassword);
-      if (user.role === 'seller') navigate('/seller/dashboard');
-      else if (user.role === 'buyer') navigate('/buyer/dashboard');
-      else if (user.role === 'admin') navigate('/admin/dashboard');
-      else navigate('/marketplace');
-    } catch (err) {
-      setError('Demo login failed: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
@@ -60,42 +54,19 @@ export const Login = () => {
           </p>
         </div>
 
+        {success && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
         {error && (
           <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
-
-        {/* Demo Account Quick Switch */}
-        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-            Quick 1-Click Demo Login:
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('seller@ecotextiles.com', 'Seller@123')}
-              className="py-1.5 px-2 rounded-xl bg-white hover:bg-eco-50 hover:text-eco-700 hover:border-eco-300 text-slate-700 font-semibold text-xs border border-slate-200 shadow-2xs transition-colors"
-            >
-              🌱 Seller
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('buyer@greenplast.com', 'Buyer@123')}
-              className="py-1.5 px-2 rounded-xl bg-white hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 text-slate-700 font-semibold text-xs border border-slate-200 shadow-2xs transition-colors"
-            >
-              🏭 Buyer
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('admin@circulareconomy.com', 'Admin@123')}
-              className="py-1.5 px-2 rounded-xl bg-white hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 text-slate-700 font-semibold text-xs border border-slate-200 shadow-2xs transition-colors"
-            >
-              ⚡ Admin
-            </button>
-          </div>
-        </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
@@ -140,8 +111,8 @@ export const Login = () => {
 
         <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
           Don't have an account?{' '}
-          <Link to="/register" className="font-bold text-eco-600 hover:text-eco-700">
-            Register new account
+          <Link to="/register/seller" className="font-bold text-eco-600 hover:text-eco-700">
+            Register as Seller
           </Link>
         </div>
       </div>

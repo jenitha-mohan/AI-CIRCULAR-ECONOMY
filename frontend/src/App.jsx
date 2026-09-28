@@ -107,7 +107,8 @@ export default function App() {
             <Route path="/about" element={<About />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register/seller" element={<Register />} />
+            <Route path="/register/buyer" element={<Register />} />
           </Route>
 
           {/* Seller Routes */}
