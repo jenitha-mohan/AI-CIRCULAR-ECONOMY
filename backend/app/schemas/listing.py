@@ -15,8 +15,6 @@ class ListingCreate(BaseModel):
     unit: Optional[str] = "kg"
     asking_price: float
     min_acceptable_price: Optional[float] = None
-    ai_estimated_min_price: Optional[float] = None
-    ai_estimated_max_price: Optional[float] = None
     status: Optional[str] = "active"
 
 
@@ -25,8 +23,6 @@ class ListingUpdate(BaseModel):
     unit: Optional[str] = None
     asking_price: Optional[float] = None
     min_acceptable_price: Optional[float] = None
-    ai_estimated_min_price: Optional[float] = None
-    ai_estimated_max_price: Optional[float] = None
     status: Optional[str] = None
 
 
@@ -38,8 +34,6 @@ class ListingResponse(BaseModel):
     unit: str = "kg"
     asking_price: float
     min_acceptable_price: Optional[float] = None
-    ai_estimated_min_price: Optional[float] = None
-    ai_estimated_max_price: Optional[float] = None
     status: str
     created_at: datetime
     updated_at: Optional[datetime] = None

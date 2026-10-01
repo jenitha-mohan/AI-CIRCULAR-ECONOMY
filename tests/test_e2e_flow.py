@@ -47,58 +47,28 @@ def test_complete_e2e_marketplace_journey_and_price_separation(client, db_sessio
     assert "Aluminum" in classify_res.json()["material"] or "Aluminium" in classify_res.json()["material"]
 
 
-    # STEP 5: AI Predicts Market Estimate Range: e.g. ~₹180/kg
-    price_pred_res = client.post("/api/ml/predict-price", json={
-        "material_type": "Aluminum",
-        "weight_kg": 500.0,
-        "quality": "High",
-        "location": "Coimbatore",
-        "demand_level": "High",
-        "historical_price": 180.0,
-        "processing_cost": 5.0,
-        "transportation_distance": 20.0,
-        "month": 9,
-        "seller_type": "Business",
-        "buyer_demand": 0.85,
-        "material_condition": "Sorted"
-    })
-    assert price_pred_res.status_code == 200
-    price_data = price_pred_res.json()
-    ai_estimated_price = price_data["predicted_price_per_kg"]
-    ai_min = price_data["estimated_min_price"]
-    ai_max = price_data["estimated_max_price"]
-    assert ai_min <= ai_estimated_price <= ai_max
-
-    # STEP 6: Seller sets Asking Price: ₹200/kg (manually decided by seller, not AI)
-    # 1. Create material
-    mat_res = client.post("/api/materials", json={
+    # STEP 5 & 6: Seller sets Asking Price: ₹200/kg (manually decided by seller, not AI)
+    # 1. Create material with asking price
+    mat_res = client.post("/api/materials?asking_price=200.0", json={
         "material_type": "Aluminum",
         "quantity_kg": 500.0,
         "quality": "High",
         "condition": "Sorted",
         "intended_purpose": "Recycling",
-        "description": "Clean aluminium manufacturing scrap from automotive plant.",
-        "predicted_price": ai_estimated_price
+        "description": "Clean aluminium manufacturing scrap from automotive plant."
     }, headers={"Authorization": f"Bearer {seller_token}"})
     assert mat_res.status_code == 200
     material_id = mat_res.json()["id"]
 
-    # 2. Create Listing with explicit seller Asking Price ₹200/kg and AI Range bounds
-    listing_res = client.post("/api/listings", json={
-        "material_id": material_id,
-        "quantity_available": 500.0,
-        "unit": "kg",
-        "asking_price": 200.0,
-        "min_acceptable_price": 180.0,
-        "ai_estimated_min_price": ai_min,
-        "ai_estimated_max_price": ai_max,
-        "status": "active"
-    }, headers={"Authorization": f"Bearer {seller_token}"})
-    assert listing_res.status_code == 201
-    listing_data = listing_res.json()
+    # 2. Get the auto-created listing
+    listings_res = client.get("/api/listings/seller/me", headers={"Authorization": f"Bearer {seller_token}"})
+    assert listings_res.status_code == 200
+    seller_listings = listings_res.json()
+    assert len(seller_listings) > 0
+    
+    listing_data = seller_listings[0]
     listing_id = listing_data["id"]
     assert listing_data["asking_price"] == 200.0
-    assert listing_data["ai_estimated_min_price"] == ai_min
 
     # STEP 7: Register Buyer (ABC Recycling)
     buyer_reg = client.post("/api/auth/register", json={
@@ -231,17 +201,14 @@ def test_complete_e2e_marketplace_journey_and_price_separation(client, db_sessio
     assert sust_data["estimated_co2_avoided_kg"] > 0.0
 
     # =========================================================================
-    # CORE BUSINESS RULE / SECTION 47: PRICE SEPARATION VERIFICATION
+    # CORE BUSINESS RULE: PRICE VERIFICATION
     # =========================================================================
     # Verify that:
-    # 1. AI Estimated Min/Max is stored
-    # 2. Seller Asking Price = 200.0
-    # 3. Final Agreed Price = 190.0
-    # 4. Total Amount = 95,000.0
+    # 1. Seller Asking Price = 200.0
+    # 2. Final Agreed Price = 190.0
+    # 3. Total Amount = 95,000.0
     # NONE of these overwrite or collide with each other!
     assert target_listing["asking_price"] == 200.0
-    assert target_listing["ai_estimated_min_price"] == ai_min
-    assert target_listing["ai_estimated_max_price"] == ai_max
     assert txn["agreed_price"] == 190.0
     assert txn["total_amount"] == 95000.0
     assert target_listing["asking_price"] != txn["agreed_price"]

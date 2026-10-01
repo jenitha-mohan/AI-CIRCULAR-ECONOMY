@@ -22,7 +22,6 @@ class Material(Base):
     condition = Column(String(50), default="Sorted")  # Clean, Contaminated, Sorted, Mixed, Baled
     intended_purpose = Column(String(100), default="Recycling")  # Recycling, Upcycling, Direct Reuse, Repurposing
     image_url = Column(String(500), nullable=True)
-    predicted_price = Column(Float, nullable=True)
     status = Column(String(50), default="available")  # draft, available, in_negotiation, sold
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

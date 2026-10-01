@@ -28,6 +28,7 @@ from backend.app.api.chat import router as chat_router
 from backend.app.api.ml import router as ml_router
 from backend.app.api.recommendations import router as recommendations_router
 from backend.app.api.analytics import router as analytics_router
+from backend.app.api.seller_classify import router as seller_classify_router
 
 
 # Logging Setup
@@ -88,6 +89,7 @@ app.include_router(chat_router)
 app.include_router(ml_router)
 app.include_router(recommendations_router)
 app.include_router(analytics_router)
+app.include_router(seller_classify_router)
 
 
 

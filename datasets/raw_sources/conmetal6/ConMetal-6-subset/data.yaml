@@ -1,0 +1,19 @@
+# ConMetal-6 Subset — YOLO Configuration
+# This file configures the 10% split subset for evaluation purposes.
+# For training, the complete dataset is available on request.
+
+# Paths (relative to this file)
+/images
+/labels
+
+# Number of classes
+nc: 6
+
+# Class names
+names: ['Aluminium', 'Brass', 'Copper', 'Ferrous Metal', 'Galvanized Steel', 'Stainless Steel']
+
+# Dataset information
+# Full dataset: 2,304 images | 35,787 instances
+# This subset: 232 images | 4,620 instances
+# Contact: diyana.athidewaranasinghe@monash.edu
+# Licence: CC BY 4.0

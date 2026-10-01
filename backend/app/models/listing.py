@@ -19,8 +19,6 @@ class Listing(Base):
     unit = Column(String(20), default="kg", nullable=False)
     asking_price = Column(Float, nullable=False)  # Seller-decided asking price per unit (INR)
     min_acceptable_price = Column(Float, nullable=True)  # Optional seller threshold
-    ai_estimated_min_price = Column(Float, nullable=True)  # Read-only AI lower guidance
-    ai_estimated_max_price = Column(Float, nullable=True)  # Read-only AI upper guidance
     status = Column(String(50), default="active", index=True)  # active, in_negotiation, paused, sold, closed
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

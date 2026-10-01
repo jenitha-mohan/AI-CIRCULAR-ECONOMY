@@ -38,7 +38,6 @@ class MaterialCreate(BaseModel):
     condition: str = "Sorted"  # Clean, Contaminated, Sorted, Mixed, Baled
     intended_purpose: str = "Recycling"  # Recycling, Upcycling, Direct Reuse, Repurposing
     image_url: Optional[str] = None
-    predicted_price: Optional[float] = None
     status: Optional[str] = "available"
 
 
@@ -50,7 +49,6 @@ class MaterialUpdate(BaseModel):
     condition: Optional[str] = None
     intended_purpose: Optional[str] = None
     image_url: Optional[str] = None
-    predicted_price: Optional[float] = None
     status: Optional[str] = None
 
 
@@ -65,7 +63,6 @@ class MaterialResponse(BaseModel):
     condition: str
     intended_purpose: str
     image_url: Optional[str] = None
-    predicted_price: Optional[float] = None
     status: str
     created_at: datetime
     seller: Optional[UserResponse] = None

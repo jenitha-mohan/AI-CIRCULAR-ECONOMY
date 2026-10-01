@@ -220,33 +220,9 @@ export const SellerDashboard = () => {
         </div>
       </div>
 
-      {/* AI Valuation vs Asking Price Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-6">
-          <ChartCard
-            title="AI Fair Value vs Asking Price Benchmark"
-            subtitle="Comparison of Gradient Boosting prediction against listed ask prices (₹/kg)"
-          >
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={priceComparisonData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  <Bar dataKey="ai_price" name="AI Valuation (₹/kg)" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="ask_price" name="Asking Price (₹/kg)" fill="#10b981" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
-
         {/* Recent Listings Table */}
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-12">
           <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -289,7 +265,7 @@ export const SellerDashboard = () => {
 
                       <div className="text-right">
                         <div className="text-xs font-bold text-emerald-600">
-                          Asking: ₹{m.listings?.[0]?.asking_price || m.predicted_price || 40}/kg
+                          Asking: ₹{m.listings?.[0]?.asking_price || 0}/kg
                         </div>
                         <Badge variant="eco" size="xs">Active</Badge>
                       </div>

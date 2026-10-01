@@ -60,8 +60,6 @@ def create_listing(
         unit=listing_in.unit or "kg",
         asking_price=listing_in.asking_price,
         min_acceptable_price=listing_in.min_acceptable_price,
-        ai_estimated_min_price=listing_in.ai_estimated_min_price,
-        ai_estimated_max_price=listing_in.ai_estimated_max_price,
         status=listing_in.status or "active"
     )
     db.add(listing)

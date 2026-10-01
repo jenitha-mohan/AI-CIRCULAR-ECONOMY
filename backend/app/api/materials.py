@@ -18,7 +18,6 @@ from backend.app.models.category import MaterialCategory
 from backend.app.schemas.material import MaterialCreate, MaterialUpdate, MaterialResponse
 from backend.app.dependencies import get_current_user, require_role
 from backend.app.services.classification_service import classification_service
-from backend.app.services.price_prediction_service import price_prediction_service
 
 router = APIRouter(prefix="/api/materials", tags=["Materials"])
 
@@ -78,7 +77,7 @@ async def upload_material_image(
 @router.post("", response_model=MaterialResponse)
 def create_material(
     material_in: MaterialCreate,
-    asking_price: Optional[float] = Query(None),
+    asking_price: float = Query(..., description="Seller manually decided asking price per kg"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["seller", "admin"]))
 ):
@@ -86,24 +85,6 @@ def create_material(
     cat = db.query(MaterialCategory).filter(
         MaterialCategory.name.ilike(f"%{material_in.material_type}%")
     ).first()
-
-    ai_res = price_prediction_service.predict_price({
-        "material_type": material_in.material_type,
-        "weight_kg": material_in.quantity_kg,
-        "quality": material_in.quality,
-        "location": current_user.location.city if current_user.location else "Coimbatore",
-        "demand_level": "Moderate",
-        "historical_price": material_in.predicted_price or 40.0,
-        "processing_cost": 5.0,
-        "transportation_distance": 20.0,
-        "month": 9,
-        "seller_type": "Business",
-        "buyer_demand": 0.8,
-        "material_condition": material_in.condition
-    })
-    ai_pred = ai_res["predicted_price_per_kg"]
-    ai_min = ai_res.get("estimated_min_price", round(ai_pred * 0.95, 2))
-    ai_max = ai_res.get("estimated_max_price", round(ai_pred * 1.05, 2))
 
     material = Material(
         seller_id=current_user.id,
@@ -115,21 +96,17 @@ def create_material(
         condition=material_in.condition,
         intended_purpose=material_in.intended_purpose,
         image_url=material_in.image_url,
-        predicted_price=material_in.predicted_price or ai_pred,
         status=material_in.status or "available"
     )
     db.add(material)
     db.flush()
 
-    # Automatically create marketplace listing
-    final_ask_price = asking_price if asking_price is not None else (material_in.predicted_price or ai_pred)
+    # Automatically create marketplace listing with seller-entered asking price
     listing = Listing(
         seller_id=current_user.id,
         material_id=material.id,
         quantity_available=material.quantity_kg,
-        asking_price=final_ask_price,
-        ai_estimated_min_price=ai_min,
-        ai_estimated_max_price=ai_max,
+        asking_price=asking_price,
         status="active"
     )
     db.add(listing)
