@@ -1,0 +1,27 @@
+{
+    "model_architecture": "MobileNetV2",
+    "num_classes": 7,
+    "class_names": [
+        "Cardboard",
+        "E-waste",
+        "Glass",
+        "Other",
+        "Paper",
+        "Plastic",
+        "Textile"
+    ],
+    "image_size": 224,
+    "training_epochs": 3,
+    "best_epoch": 3,
+    "validation_accuracy": 0.8425720620842572,
+    "test_metrics": {
+        "accuracy": 0.8497237569060774,
+        "macro_f1": 0.8537146942942994,
+        "weighted_f1": 0.8491432018987298
+    },
+    "training_timestamp": "2026-10-06T22:49:41.360230",
+    "dataset_path": "datasets/material_images",
+    "random_seed": 42,
+    "pytorch_version": "2.14.1+cpu",
+    "device_used": "cpu"
+}
