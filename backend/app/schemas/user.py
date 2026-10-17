@@ -33,6 +33,7 @@ class UserRegister(BaseModel):
     materials_interested: Optional[str] = Field(default=None, max_length=500, description="Categories interested in (Buyers)")
     city: str = Field(..., description="Location City (Required)")
     state: str = Field(default="Tamil Nadu", description="Location State")
+    country: Optional[str] = Field(default="India", description="Country")
     latitude: Optional[float] = 11.0168
     longitude: Optional[float] = 76.9558
 

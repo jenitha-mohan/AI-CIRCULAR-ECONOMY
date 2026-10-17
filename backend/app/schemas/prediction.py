@@ -37,6 +37,24 @@ class PricePredictionResponse(BaseModel):
 
 
 
+class PredictionItem(BaseModel):
+    material: str
+    confidence: float
+    category: Optional[str] = "Mixed"
+
+
+class MaterialClassificationPredictResponse(BaseModel):
+    predicted_class: str
+    confidence: float
+    top_predictions: List[PredictionItem]
+    model_version: str
+    supported_classes: List[str]
+    prototype: bool
+    limitations: str
+    category: Optional[str] = "Mixed"
+    model_name: Optional[str] = "MobileNetV2"
+
+
 class ClassificationResponse(BaseModel):
     material: str
     confidence: float
@@ -47,6 +65,11 @@ class ClassificationResponse(BaseModel):
     is_fallback: Optional[bool] = False
     message: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    # 7-Class Prototype Extensions
+    top_predictions: Optional[List[Dict[str, Any]]] = None
+    prototype: Optional[bool] = True
+    supported_classes: Optional[List[str]] = None
+    limitations: Optional[str] = None
 
 
 class DemandPredictionRequest(BaseModel):

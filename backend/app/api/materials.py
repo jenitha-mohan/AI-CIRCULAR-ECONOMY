@@ -64,7 +64,16 @@ async def upload_material_image(
         await f.write(content)
 
     # 5. Run AI Material Classification
-    classification_res = classification_service.classify_image(content, filename=file.filename)
+    try:
+        classification_res = classification_service.classify_image(content, filename=file.filename)
+    except Exception as exc:
+        classification_res = {
+            "material": "Other",
+            "category": "Mixed",
+            "confidence": 0.0,
+            "is_fallback": True,
+            "message": str(exc),
+        }
 
     rel_url = f"/uploads/materials/{unique_name}"
     return {

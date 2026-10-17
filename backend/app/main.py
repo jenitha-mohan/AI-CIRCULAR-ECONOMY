@@ -29,6 +29,7 @@ from backend.app.api.ml import router as ml_router
 from backend.app.api.recommendations import router as recommendations_router
 from backend.app.api.analytics import router as analytics_router
 from backend.app.api.seller_classify import router as seller_classify_router
+from backend.app.api.classification import router as classification_router
 
 
 # Logging Setup
@@ -90,6 +91,7 @@ app.include_router(ml_router)
 app.include_router(recommendations_router)
 app.include_router(analytics_router)
 app.include_router(seller_classify_router)
+app.include_router(classification_router)
 
 
 

@@ -43,13 +43,14 @@ BUYER_PAYLOAD = {
     "state": "Tamil Nadu",
 }
 
-# Minimal valid JPEG bytes (single grey pixel)
-_JPEG = (
-    b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
-    b"\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t"
-    b"\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f"
-    b"\xff\xd9"
-)
+# Valid JPEG bytes
+def _make_valid_jpeg():
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (32, 32), color=(128, 128, 128)).save(buf, format="JPEG")
+    return buf.getvalue()
+
+_JPEG = _make_valid_jpeg()
 
 ENDPOINT = "/api/seller/materials/classify"
 

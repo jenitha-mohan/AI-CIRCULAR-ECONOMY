@@ -95,21 +95,35 @@ async def classify_material_image(
     # ── 5. AI Classification ─────────────────────────────────────────────────
     try:
         result = classification_service.classify_image(content, filename=file.filename)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Material identification failed. Please try another image.",
         ) from exc
 
-    # ── 6. Return clean response (no price fields) ───────────────────────────
+    # ── 6. Return structured response (no price fields) ──────────────────────
     return {
-        "material":         result["material"],
-        "category":         result.get("category", "Mixed"),
-        "confidence":       result["confidence"],
-        "image_url":        f"/uploads/materials/{safe_name}",
+        "material":          result["material"],
+        "category":          result.get("category", "Mixed"),
+        "confidence":        result["confidence"],
+        "top_predictions":   result.get("top_predictions", []),
         "secondary_classes": result.get("secondary_classes", []),
-        "model_name":       result.get("model_name"),
-        "model_version":    result.get("model_version"),
-        "is_fallback":      result.get("is_fallback", False),
+        "image_url":         f"/uploads/materials/{safe_name}",
+        "model_name":        result.get("model_name"),
+        "model_version":     result.get("model_version"),
+        "is_fallback":       result.get("is_fallback", False),
+        "prototype":         result.get("prototype", True),
+        "supported_classes": result.get("supported_classes", []),
+        "limitations":       result.get("limitations", ""),
         # seller_id is NEVER returned — no sensitive data leakage
     }
