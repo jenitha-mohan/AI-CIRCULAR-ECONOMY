@@ -51,8 +51,9 @@ class SustainabilityService:
         """
         factors = self.get_impact_factors(db)
         
-        # Aggregate from completed transactions
-        txs = db.query(Transaction).filter(Transaction.status == "completed").all()
+        # Aggregate from completed transactions (case-insensitive)
+        from sqlalchemy import func
+        txs = db.query(Transaction).filter(func.lower(Transaction.status) == "completed").all()
         materials = db.query(Material).all()
 
         total_tx_volume = sum(tx.quantity_kg for tx in txs)

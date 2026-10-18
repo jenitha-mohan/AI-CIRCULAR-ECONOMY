@@ -48,23 +48,47 @@ class DemandPredictionService:
             "evaluation_metrics": {"test_r2": 0.8301, "test_mae_kg": 1185.33}
         }
 
-    def predict_demand(self, material_type: str, forecast_period: str = "next_month", location: str = "Coimbatore") -> Dict[str, Any]:
+    def predict_demand(
+        self,
+        material_type: str,
+        forecast_period: str = "next_month",
+        location: str = "Coimbatore",
+        forecast_date: Any = None
+    ) -> Dict[str, Any]:
         """
         Forecasts forward demand volume and classifies trend.
+        Dynamically derives calendar features (month, quarter, day_of_week, day_of_year)
+        from forecast_date or the current UTC date.
         """
+        from datetime import datetime
         mat = material_type.capitalize()
         base_monthly = BASE_DEMAND_MONTHLY.get(mat, 50000)
 
-        # Build feature vector if model is available
+        # Determine target date
+        if forecast_date is None:
+            target_date = datetime.utcnow()
+        elif isinstance(forecast_date, str):
+            try:
+                target_date = datetime.fromisoformat(forecast_date.replace("Z", "+00:00"))
+            except Exception:
+                target_date = datetime.utcnow()
+        else:
+            target_date = forecast_date
+
+        month = target_date.month
+        quarter = (month - 1) // 3 + 1
+        day_of_week = target_date.weekday()  # Monday is 0, Sunday is 6
+        day_of_year = target_date.timetuple().tm_yday
+
+        # Build feature vector matching training feature contract
         if self.model is not None:
             try:
-                # Approximate 30-day projection
                 df_input = pd.DataFrame([{
                     "material_type": mat,
-                    "month": 10,
-                    "quarter": 4,
-                    "day_of_week": 2,
-                    "day_of_year": 280,
+                    "month": month,
+                    "quarter": quarter,
+                    "day_of_week": day_of_week,
+                    "day_of_year": day_of_year,
                     "lag_1": base_monthly / 30.0,
                     "lag_7": base_monthly / 30.0,
                     "lag_30": base_monthly / 30.0,

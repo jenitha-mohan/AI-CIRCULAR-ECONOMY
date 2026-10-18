@@ -93,4 +93,6 @@ async def predict_material(
         "limitations": raw_res.get("limitations", ""),
         "category": raw_res.get("category", "Mixed"),
         "model_name": raw_res.get("model_name", "MobileNetV2"),
+        "is_uncertain": raw_res.get("is_uncertain", False),
+        "uncertainty_warning": raw_res.get("uncertainty_warning"),
     }

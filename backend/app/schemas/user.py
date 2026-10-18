@@ -101,6 +101,50 @@ class TokenResponse(BaseModel):
     user: dict
 
 
+class UserPublicResponse(BaseModel):
+    """Limited public profile for other marketplace participants (no email, phone, or private attributes)."""
+    id: str
+    name: str
+    role: str
+    organization: Optional[str] = None
+    company_name: Optional[str] = None
+    business_type: Optional[str] = None
+    location: Optional[LocationResponse] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserUpdate(BaseModel):
+    """Permitted fields for authenticated user self-updates (PUT/PATCH /api/users/me)."""
+    phone: Optional[str] = Field(default=None, max_length=25)
+    organization: Optional[str] = Field(default=None, min_length=2, max_length=200)
+    business_type: Optional[str] = Field(default=None, max_length=100)
+    city: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    state: Optional[str] = Field(default=None, min_length=2, max_length=100)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v_clean = re.sub(r"[^\d+\-\s()]", "", v.strip())
+        digits_only = re.sub(r"\D", "", v_clean)
+        if digits_only and (len(digits_only) < 10 or len(digits_only) > 15):
+            raise ValueError("Phone number must contain between 10 and 15 digits.")
+        return v_clean
+
+    @field_validator("organization")
+    @classmethod
+    def validate_organization(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v_clean = v.strip()
+        if not v_clean:
+            raise ValueError("Organization name cannot be empty.")
+        return v_clean
+
+
 class UserResponse(BaseModel):
     id: str
     name: str

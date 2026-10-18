@@ -433,3 +433,118 @@ class TestExistingEndpointsUnaffected:
         res = client.get("/api/listings/seller/me",
                          headers={"Authorization": f"Bearer {seller_auth_token}"})
         assert res.status_code == 200
+
+
+# ── 6. STEP 3I: Add Waste Workflow Integration Tests ─────────────────────────
+
+class TestStep3IAddWasteWorkflow:
+
+    def test_seller_upload_and_classify_real_image(self, client, seller_auth_token):
+        """
+        Simulates NewMaterial page upload flow:
+        1. Seller uploads real Cardboard image with multipart/form-data.
+        2. Real MobileNetV2 classification executes.
+        3. Returns predicted material, confidence, and top-3 ranked predictions.
+        4. Discloses 7-class prototype limitations and excludes metals.
+        """
+        img_bytes = _read_real_test_image("Cardboard")
+        res = client.post(
+            CLASSIFY_URL,
+            files={"file": ("waste_sample.jpg", io.BytesIO(img_bytes), "image/jpeg")},
+            headers={"Authorization": f"Bearer {seller_auth_token}"},
+        )
+        assert res.status_code == 200
+        data = res.json()
+
+        # Validate prediction details
+        assert data["material"] == "Cardboard"
+        assert 0.0 <= data["confidence"] <= 1.0
+        assert len(data["top_predictions"]) == 3
+        assert data["prototype"] is True
+        assert "Aluminum" not in data["supported_classes"]
+        assert "Copper" not in data["supported_classes"]
+        assert "Steel" not in data["supported_classes"]
+        assert data["image_url"].startswith("/uploads/materials/")
+
+    def test_seller_reviews_and_publishes_listing_with_manual_price(self, client, seller_auth_token):
+        """
+        Simulates full Add Waste journey:
+        1. Seller classifies real image.
+        2. Seller reviews AI result and accepts or overrides.
+        3. Seller specifies manual asking_price (no AI price).
+        4. Material and Listing are created and verified.
+        """
+        img_bytes = _read_real_test_image("Glass")
+        classify_res = client.post(
+            CLASSIFY_URL,
+            files={"file": ("glass_scrap.jpg", io.BytesIO(img_bytes), "image/jpeg")},
+            headers={"Authorization": f"Bearer {seller_auth_token}"},
+        )
+        assert classify_res.status_code == 200
+        c_data = classify_res.json()
+        saved_img_url = c_data["image_url"]
+
+        # Seller sets manual asking price: 85.50
+        MANUAL_ASKING_PRICE = 85.50
+        create_res = client.post(
+            f"/api/materials?asking_price={MANUAL_ASKING_PRICE}",
+            json={
+                "material_type": c_data["material"],
+                "description": "Sorted clear cullet scrap from manufacturing",
+                "quantity_kg": 350.0,
+                "quality": "High",
+                "condition": "Sorted",
+                "intended_purpose": "Recycling",
+                "image_url": saved_img_url,
+            },
+            headers={"Authorization": f"Bearer {seller_auth_token}"},
+        )
+        assert create_res.status_code == 200
+        mat_data = create_res.json()
+        assert mat_data["material_type"] == c_data["material"]
+        assert mat_data["image_url"] == saved_img_url
+
+        # Check listing was auto-created with the seller's manual asking price
+        listings_res = client.get(
+            "/api/listings/seller/me",
+            headers={"Authorization": f"Bearer {seller_auth_token}"},
+        )
+        assert listings_res.status_code == 200
+        listings = listings_res.json()
+        matching = [l for l in listings if l["material_id"] == mat_data["id"]]
+        assert len(matching) == 1
+        assert matching[0]["asking_price"] == MANUAL_ASKING_PRICE
+
+    def test_seller_overrides_ai_to_metal_and_publishes_successfully(self, client, seller_auth_token):
+        """
+        Simulates seller overriding AI output with a metal (e.g. Copper)
+        which is supported on the marketplace for manual listings but not in AI output classes.
+        """
+        img_bytes = _read_real_test_image("Other")
+        classify_res = client.post(
+            CLASSIFY_URL,
+            files={"file": ("metal_wire.jpg", io.BytesIO(img_bytes), "image/jpeg")},
+            headers={"Authorization": f"Bearer {seller_auth_token}"},
+        )
+        assert classify_res.status_code == 200
+        saved_img_url = classify_res.json()["image_url"]
+
+        # Seller overrides to Copper with manual price 450.00
+        OVERRIDE_MATERIAL = "Copper"
+        MANUAL_PRICE = 450.00
+        create_res = client.post(
+            f"/api/materials?asking_price={MANUAL_PRICE}",
+            json={
+                "material_type": OVERRIDE_MATERIAL,
+                "description": "High conductivity stripped copper wire scrap",
+                "quantity_kg": 120.0,
+                "quality": "Industrial Grade",
+                "condition": "Clean",
+                "intended_purpose": "Recycling",
+                "image_url": saved_img_url,
+            },
+            headers={"Authorization": f"Bearer {seller_auth_token}"},
+        )
+        assert create_res.status_code == 200
+        mat = create_res.json()
+        assert mat["material_type"] == "Copper"

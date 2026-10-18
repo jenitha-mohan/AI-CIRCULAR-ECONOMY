@@ -22,6 +22,9 @@ import MaterialDetail from './pages/seller/MaterialDetail';
 import SellerRecommendations from './pages/seller/SellerRecommendations';
 import SellerOffers from './pages/seller/SellerOffers';
 import SellerTransactions from './pages/seller/SellerTransactions';
+import SellerAnalytics from './pages/seller/SellerAnalytics';
+import SellerChat from './pages/seller/SellerChat';
+import SellerProfile from './pages/seller/SellerProfile';
 
 // Buyer Pages
 import BuyerDashboard from './pages/buyer/BuyerDashboard';
@@ -116,8 +119,13 @@ export default function App() {
             <Route path="dashboard" element={<SellerDashboard />} />
             <Route path="materials" element={<SellerMaterials />} />
             <Route path="materials/new" element={<NewMaterial />} />
+            <Route path="listings/new" element={<NewMaterial />} />
             <Route path="materials/:id" element={<MaterialDetail />} />
             <Route path="offers" element={<SellerOffers />} />
+            <Route path="negotiations" element={<SellerOffers />} />
+            <Route path="analytics" element={<SellerAnalytics />} />
+            <Route path="chat" element={<SellerChat />} />
+            <Route path="profile" element={<SellerProfile />} />
             <Route path="recommendations" element={<SellerRecommendations />} />
             <Route path="transactions" element={<SellerTransactions />} />
           </Route>

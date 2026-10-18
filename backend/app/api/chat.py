@@ -35,12 +35,14 @@ def get_transaction_messages(
     if current_user.id not in [transaction.buyer_id, transaction.seller_id] and current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access chat for this transaction.")
 
-    # Mark incoming messages as read
+    from datetime import datetime
+
+    # Mark incoming messages addressed to current_user as read
     db.query(ChatMessage).filter(
         ChatMessage.transaction_id == transaction_id,
         ChatMessage.receiver_id == current_user.id,
         ChatMessage.read_at.is_(None)
-    ).update({"read_at": None})
+    ).update({"read_at": datetime.utcnow()})
     db.commit()
 
     return db.query(ChatMessage).filter(

@@ -13,15 +13,19 @@ export const BuyerRecommendations = () => {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+  const [offeredQuantity, setOfferedQuantity] = useState('');
+  const [offeredPrice, setOfferedPrice] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+  const [offerSuccess, setOfferSuccess] = useState(false);
+  const [offerError, setOfferError] = useState('');
 
   const fetchRecommendations = async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
       const res = await api.get(`/api/recommendations/materials/${user.id}`);
-      setRecommendations(res.data);
+      setRecommendations(res.data || []);
     } catch (err) {
       console.error('Error fetching buyer recommendations:', err);
     } finally {
@@ -35,27 +39,59 @@ export const BuyerRecommendations = () => {
 
   const handleOpenDetail = (item) => {
     setSelectedItem(item);
+    const defaultAsk = item.asking_price ?? (item.material?.listings?.[0]?.asking_price ?? '');
+    setOfferedQuantity(item.quantity_kg || '');
+    setOfferedPrice(defaultAsk);
+    setOfferMessage('');
+    setOfferError('');
+    setOfferSuccess(false);
     setIsModalOpen(true);
-    setPurchaseSuccess(false);
   };
 
-  const handleConfirmPurchase = async () => {
+  const handleSubmitOffer = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!selectedItem) return;
-    setIsPurchasing(true);
+
+    const listingId = selectedItem.material?.listings?.[0]?.id;
+    if (!listingId) {
+      setOfferError('No active listing found for this recommended material lot. The seller may have closed or paused it.');
+      return;
+    }
+
+    const qty = parseFloat(offeredQuantity);
+    const price = parseFloat(offeredPrice);
+
+    if (!qty || qty <= 0) {
+      setOfferError('Offered quantity must be greater than zero.');
+      return;
+    }
+    if (!price || price <= 0) {
+      setOfferError('Offered price must be greater than zero.');
+      return;
+    }
+
+    const maxAvailable = selectedItem.material?.listings?.[0]?.quantity_available ?? selectedItem.quantity_kg;
+    if (qty > maxAvailable) {
+      setOfferError(`Offered quantity (${qty} kg) exceeds available stock (${maxAvailable} kg).`);
+      return;
+    }
+
+    setIsSubmittingOffer(true);
+    setOfferError('');
     try {
-      await api.post('/api/transactions', {
-        listing_id: selectedItem.material?.listings?.[0]?.id || null,
-        seller_id: selectedItem.material?.seller_id || user.id,
-        material_type: selectedItem.material_type,
-        quantity_kg: selectedItem.quantity_kg,
-        agreed_price: selectedItem.predicted_price || selectedItem.asking_price || 40.0,
+      await api.post('/api/offers', {
+        listing_id: listingId,
+        offered_quantity: qty,
+        offered_price: price,
+        message: offerMessage || 'Offer initiated from AI Recommendations feed.',
       });
-      setPurchaseSuccess(true);
+      setOfferSuccess(true);
       fetchRecommendations();
     } catch (err) {
-      console.error('Purchase error:', err);
+      console.error('Offer submission error:', err);
+      setOfferError(err.response?.data?.detail || err.response?.data?.message || 'Failed to submit offer to seller.');
     } finally {
-      setIsPurchasing(false);
+      setIsSubmittingOffer(false);
     }
   };
 
@@ -112,8 +148,10 @@ export const BuyerRecommendations = () => {
                     <span className="font-bold text-slate-900">{item.quality}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">AI Valuation</span>
-                    <span className="font-extrabold text-emerald-600">₹{item.predicted_price || item.asking_price}/kg</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Seller Asking Price</span>
+                    <span className="font-extrabold text-emerald-600">
+                      {item.asking_price ? `₹${item.asking_price}/kg` : 'Negotiable'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase font-semibold">Proximity</span>
@@ -141,7 +179,7 @@ export const BuyerRecommendations = () => {
                 onClick={() => handleOpenDetail(item)}
                 className="w-full py-2.5 rounded-xl bg-eco-600 hover:bg-eco-700 text-white font-bold text-xs shadow-sm shadow-eco-600/20 transition-all flex items-center justify-center gap-1.5"
               >
-                Inspect & Procure <ArrowRight className="w-3.5 h-3.5" />
+                Inspect & Make Offer <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}
@@ -152,29 +190,37 @@ export const BuyerRecommendations = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedItem?.material_type || 'Feedstock Match'}
+        title={selectedItem?.material_type ? `Make Offer — ${selectedItem.material_type}` : 'Feedstock Offer'}
+        subtitle={`Seller: ${selectedItem?.seller_organization || selectedItem?.seller_name || 'Verified Generator'}`}
+        maxWidth="max-w-md"
       >
         {selectedItem && (
-          <div className="space-y-6">
-            {purchaseSuccess ? (
+          <div className="space-y-4">
+            {offerSuccess ? (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-3">
                 <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
-                <h4 className="text-base font-bold text-emerald-900">Procurement Successful!</h4>
+                <h4 className="text-base font-bold text-emerald-900">Offer Submitted Successfully!</h4>
                 <p className="text-xs text-emerald-700">
-                  Transaction registered in ledger with lifecycle CO₂ offset certification.
+                  Your purchase offer has been sent to the seller for review. You can track rounds and negotiate terms under My Offers.
                 </p>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
                 >
-                  Close
+                  Done
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/60 text-xs">
+              <form onSubmit={handleSubmitOffer} className="space-y-4">
+                {offerError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+                    <span className="font-bold">Error:</span> {offerError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/60 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Volume</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Available Lot</span>
                     <span className="font-bold text-slate-900 text-sm">{selectedItem.quantity_kg} kg</span>
                   </div>
                   <div>
@@ -182,25 +228,81 @@ export const BuyerRecommendations = () => {
                     <span className="font-black text-emerald-600 text-sm">{(selectedItem.match_score * 100).toFixed(0)}%</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Agreed Price</span>
-                    <span className="font-bold text-slate-900 text-sm">₹{selectedItem.predicted_price || selectedItem.asking_price}/kg</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Seller Asking Price</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {selectedItem.asking_price ? `₹${selectedItem.asking_price}/kg` : 'Open to Bids'}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Total Amount</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      ₹{((selectedItem.predicted_price || selectedItem.asking_price || 40) * selectedItem.quantity_kg).toLocaleString('en-IN')}
-                    </span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Proximity</span>
+                    <span className="font-bold text-slate-900 text-sm">{selectedItem.distance_km} km</span>
                   </div>
                 </div>
 
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Offer Quantity (kg) *
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="1"
+                      required
+                      value={offeredQuantity}
+                      onChange={(e) => setOfferedQuantity(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
+                      placeholder="e.g. 500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Bid Price (₹ per kg) *
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0.1"
+                      required
+                      value={offeredPrice}
+                      onChange={(e) => setOfferedPrice(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
+                      placeholder="e.g. 35.0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Note to Seller (Optional)
+                    </label>
+                    <textarea
+                      rows="2"
+                      value={offerMessage}
+                      onChange={(e) => setOfferMessage(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none resize-none"
+                      placeholder="Include logistics preferences, delivery window, or spec questions..."
+                    />
+                  </div>
+                </div>
+
+                {offeredQuantity && offeredPrice && (
+                  <div className="bg-eco-50/60 border border-eco-200/80 p-3 rounded-xl flex items-center justify-between text-xs">
+                    <span className="text-slate-600 font-semibold">Total Bid Value:</span>
+                    <span className="text-sm font-extrabold text-eco-800">
+                      ₹{(parseFloat(offeredQuantity || 0) * parseFloat(offeredPrice || 0)).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                )}
+
                 <button
-                  onClick={handleConfirmPurchase}
-                  disabled={isPurchasing}
-                  className="w-full py-3 rounded-2xl bg-eco-600 hover:bg-eco-700 text-white font-bold text-sm shadow-md shadow-eco-600/20"
+                  type="submit"
+                  disabled={isSubmittingOffer}
+                  className="w-full py-3 rounded-2xl bg-eco-600 hover:bg-eco-700 text-white font-bold text-sm shadow-md shadow-eco-600/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
-                  {isPurchasing ? 'Processing Order...' : 'Confirm Circular Order'}
+                  {isSubmittingOffer ? 'Submitting Bid...' : 'Submit Purchase Offer'}
                 </button>
-              </div>
+              </form>
             )}
           </div>
         )}

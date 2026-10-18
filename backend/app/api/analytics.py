@@ -2,7 +2,7 @@
 Analytics API Router
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -19,12 +19,21 @@ from backend.app.schemas.analytics import (
 )
 from backend.app.services.sustainability_service import sustainability_service
 from backend.app.services.demand_prediction_service import demand_prediction_service
+from backend.app.dependencies import get_current_user, require_role, get_optional_current_user
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
 
 @router.get("/overview", response_model=OverviewAnalyticsResponse)
-def get_overview_analytics(db: Session = Depends(get_db)):
+def get_overview_analytics(
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user)
+):
+    """
+    Marketplace-level circular economy overview analytics.
+    Returns high-level circular metrics and macro trends for all users.
+    If unauthenticated, operational transaction details (counterparty names) are anonymized.
+    """
     total_users = db.query(User).count()
     total_sellers = db.query(User).filter(User.role == "seller").count()
     total_buyers = db.query(User).filter(User.role == "buyer").count()
@@ -34,20 +43,28 @@ def get_overview_analytics(db: Session = Depends(get_db)):
     sust_overview = sustainability_service.get_overview_metrics(db)
 
     txs = db.query(Transaction).order_by(Transaction.created_at.desc()).limit(10).all()
-    recent_txs = [
-        {
+    recent_txs = []
+    for tx in txs:
+        # For authenticated users (admin, buyer, seller), provide transparent counterparties;
+        # for unauthenticated public viewers, mask names to prevent corporate PII scraping.
+        if current_user:
+            buyer_display = tx.buyer.name if tx.buyer else "Verified Buyer"
+            seller_display = tx.seller.name if tx.seller else "Verified Seller"
+        else:
+            buyer_display = "Verified Buyer"
+            seller_display = "Verified Generator"
+
+        recent_txs.append({
             "id": tx.id,
             "material_type": tx.material_type,
             "quantity_kg": tx.quantity_kg,
             "agreed_price": tx.agreed_price,
             "total_amount": tx.total_amount,
             "status": tx.status,
-            "buyer_name": tx.buyer.name if tx.buyer else "Buyer",
-            "seller_name": tx.seller.name if tx.seller else "Seller",
+            "buyer_name": buyer_display,
+            "seller_name": seller_display,
             "created_at": tx.created_at.isoformat()
-        }
-        for tx in txs
-    ]
+        })
 
     # Calculate total marketplace value from all transactions
     all_txs = db.query(Transaction).all()
@@ -98,6 +115,10 @@ def get_overview_analytics(db: Session = Depends(get_db)):
 def get_material_analytics(db: Session = Depends(get_db)):
     materials = db.query(Material).all()
 
+    # Map listing asking prices to materials
+    listings = db.query(Listing).filter(Listing.status == "active").all()
+    listing_price_map = {l.material_id: l.asking_price for l in listings}
+
     dist = {}
     prices = {}
     for m in materials:
@@ -105,8 +126,8 @@ def get_material_analytics(db: Session = Depends(get_db)):
         dist[m_type] = dist.get(m_type, 0) + m.quantity_kg
         if m_type not in prices:
             prices[m_type] = []
-        if m.predicted_price:
-            prices[m_type].append(m.predicted_price)
+        if m.id in listing_price_map:
+            prices[m_type].append(listing_price_map[m.id])
 
     material_distribution = [
         {"material": k, "total_quantity_kg": round(v, 1)}
@@ -166,16 +187,49 @@ def get_sustainability_analytics(db: Session = Depends(get_db)):
     return sustainability_service.get_overview_metrics(db)
 
 
+@router.get("/seller/me")
+def get_my_seller_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["seller", "admin"]))
+):
+    """Current authenticated seller's circular metrics and inventory summary."""
+    return _compute_seller_analytics(seller_id=current_user.id, db=db)
+
+
 @router.get("/seller/{seller_id}")
-def get_seller_analytics(seller_id: str, db: Session = Depends(get_db)):
-    """Per-seller analytics: materials, transactions, estimated inventory value."""
-    from backend.app.dependencies import get_current_user
+def get_seller_analytics(
+    seller_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Per-seller analytics: materials, transactions, inventory valuation.
+    Enforces multi-tenant isolation: sellers can only access their own analytics.
+    """
+    if current_user.role != "admin" and current_user.id != seller_id:
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: You cannot view analytics for another seller."
+        )
+    return _compute_seller_analytics(seller_id=seller_id, db=db)
+
+
+def _compute_seller_analytics(seller_id: str, db: Session) -> dict:
     seller_materials = db.query(Material).filter(Material.seller_id == seller_id).all()
     seller_txs = db.query(Transaction).filter(Transaction.seller_id == seller_id).all()
-    completed = [t for t in seller_txs if t.status == "completed"]
+    completed_statuses = {"completed", "COMPLETED", "CONFIRMED", "PICKUP_SCHEDULED", "IN_TRANSIT", "DELIVERED"}
+    completed = [t for t in seller_txs if (t.status or "").upper() in completed_statuses or (t.status or "").lower() == "completed"]
+
+    # Collect listing asking prices to evaluate inventory if available
+    seller_listings = db.query(Listing).filter(Listing.seller_id == seller_id, Listing.status == "active").all()
+    listing_price_map = {l.material_id: l.asking_price for l in seller_listings}
 
     total_volume = sum(m.quantity_kg for m in seller_materials)
-    inventory_value = sum((m.predicted_price or 40.0) * m.quantity_kg for m in seller_materials)
+    inventory_value = sum(
+        listing_price_map.get(m.id, 40.0) * m.quantity_kg
+        for m in seller_materials
+    )
     sold_volume = sum(t.quantity_kg for t in completed)
     revenue = sum(t.total_amount for t in completed)
 

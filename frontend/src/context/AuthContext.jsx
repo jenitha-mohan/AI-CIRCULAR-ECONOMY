@@ -9,18 +9,35 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    if (savedToken && savedUser) {
+    const verifySavedAuth = async () => {
+      const savedToken = localStorage.getItem('token');
+      if (!savedToken) {
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
+        // Validate saved token with backend
+        const res = await api.get('/api/auth/me', {
+          headers: { Authorization: `Bearer ${savedToken}` }
+        });
         setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
+        setUser(res.data);
+        localStorage.setItem('user', JSON.stringify(res.data));
+      } catch (err) {
+        // Invalid or expired token: clear session
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    verifySavedAuth();
   }, []);
 
   const login = async (email, password) => {

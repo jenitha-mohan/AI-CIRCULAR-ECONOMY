@@ -154,6 +154,9 @@ class RecommendationService:
                 )
                 best_match = res
 
+            asking_price = mat.listings[0].asking_price if mat.listings else None
+            pred_price = getattr(mat, "predicted_price", None) or asking_price
+
             scored_materials.append({
                 "material_id": mat.id,
                 "material_type": mat.material_type,
@@ -162,8 +165,8 @@ class RecommendationService:
                 "quantity_kg": mat.quantity_kg,
                 "quality": mat.quality,
                 "condition": mat.condition,
-                "asking_price": mat.listings[0].asking_price if mat.listings else mat.predicted_price,
-                "predicted_price": mat.predicted_price,
+                "asking_price": asking_price,
+                "predicted_price": pred_price,
                 "match_score": best_match["match_score"],
                 "distance_km": best_match["distance_km"],
                 "reasons": best_match["reasons"],

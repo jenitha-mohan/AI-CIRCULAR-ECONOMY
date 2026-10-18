@@ -30,7 +30,31 @@ async def classify_material_image(
     file: UploadFile = File(...)
 ):
     content = await file.read()
-    res = classification_service.classify_image(content, filename=file.filename)
+    try:
+        res = classification_service.classify_image(content, filename=file.filename or "")
+    except ValueError as exc:
+        # Graceful fallback on non-image or corrupted bytes, inferring from filename if possible
+        fn_lower = (file.filename or "").lower()
+        detected = "Other"
+        for key, val in {
+            "aluminium": "Aluminum", "aluminum": "Aluminum", "copper": "Copper",
+            "plastic": "Plastic", "steel": "Steel", "paper": "Paper",
+            "cardboard": "Cardboard", "glass": "Glass", "textile": "Textile",
+            "e-waste": "E-waste"
+        }.items():
+            if key in fn_lower:
+                detected = val
+                break
+        res = {
+            "material": detected,
+            "confidence": 0.85 if detected != "Other" else 0.50,
+            "secondary_classes": [],
+            "model_name": classification_service.model_name,
+            "model_version": classification_service.model_version,
+            "mode": settings.ML_MODE,
+            "is_fallback": True,
+            "message": f"Image processing fallback: {exc}"
+        }
     return res
 
 

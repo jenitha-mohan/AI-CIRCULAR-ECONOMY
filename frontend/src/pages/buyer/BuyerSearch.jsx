@@ -62,9 +62,14 @@ export const BuyerSearch = () => {
     return matchSearch && matchCat && matchQual;
   });
 
+  // Derive the active listing from the material's listings array
+  const getActiveListing = (mat) =>
+    (mat?.listings || []).find((l) => l.status === 'active') || null;
+
   const handleOpenDetail = (mat) => {
     setSelectedMaterial(mat);
-    const defaultAsk = mat.listings?.[0]?.asking_price || mat.predicted_price || 40.0;
+    const activeListing = getActiveListing(mat);
+    const defaultAsk = activeListing?.asking_price ?? '';
     setOfferedQuantity(mat.quantity_kg);
     setOfferedPrice(defaultAsk);
     setOfferMessage('');
@@ -77,9 +82,27 @@ export const BuyerSearch = () => {
     e.preventDefault();
     if (!selectedMaterial) return;
 
-    const listingId = selectedMaterial.listings?.[0]?.id;
-    if (!listingId) {
-      setOfferError('No active listing ID found for this material lot.');
+    const activeListing = getActiveListing(selectedMaterial);
+    if (!activeListing) {
+      setOfferError('No active listing found for this material lot. The seller may have closed or paused it.');
+      return;
+    }
+
+    const qty = parseFloat(offeredQuantity);
+    const price = parseFloat(offeredPrice);
+
+    if (!qty || qty <= 0) {
+      setOfferError('Offered quantity must be greater than zero.');
+      return;
+    }
+    if (!price || price <= 0) {
+      setOfferError('Offered price must be greater than zero.');
+      return;
+    }
+    if (qty > activeListing.quantity_available) {
+      setOfferError(
+        `Offered quantity (${qty} kg) exceeds available stock (${activeListing.quantity_available} kg).`
+      );
       return;
     }
 
@@ -87,14 +110,14 @@ export const BuyerSearch = () => {
     setOfferError('');
     try {
       await api.post('/api/offers', {
-        listing_id: listingId,
-        offered_quantity: parseFloat(offeredQuantity),
-        offered_price: parseFloat(offeredPrice),
-        message: offerMessage || 'Offer placed via Material Search.'
+        listing_id: activeListing.id,
+        offered_quantity: qty,
+        offered_price: price,
+        message: offerMessage || 'Offer placed via Material Search.',
       });
       setOfferSuccess(true);
     } catch (err) {
-      setOfferError(err.response?.data?.detail || 'Failed to submit offer.');
+      setOfferError(err.response?.data?.detail || err.response?.data?.message || 'Failed to submit offer.');
     } finally {
       setIsSubmittingOffer(false);
     }
@@ -157,9 +180,8 @@ export const BuyerSearch = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((mat) => {
-            const askPrice = mat.listings?.[0]?.asking_price || mat.predicted_price || 0;
-            const aiMin = mat.listings?.[0]?.ai_estimated_min_price || Math.round(askPrice * 0.95);
-            const aiMax = mat.listings?.[0]?.ai_estimated_max_price || Math.round(askPrice * 1.05);
+            const activeListing = getActiveListing(mat);
+            const askPrice = activeListing?.asking_price ?? null;
 
             return (
               <div
@@ -177,6 +199,11 @@ export const BuyerSearch = () => {
                     <Badge variant="eco" size="xs">{mat.material_type}</Badge>
                     <Badge variant="default" size="xs">{mat.quality}</Badge>
                   </div>
+                  {!activeListing && (
+                    <div className="absolute top-3 right-3">
+                      <span className="bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">No Listing</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
@@ -197,11 +224,13 @@ export const BuyerSearch = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400 font-semibold">Asking Price:</span>
-                      <span className="font-extrabold text-slate-900">₹{askPrice}/kg</span>
+                      <span className="font-extrabold text-slate-900">
+                        {askPrice != null ? `₹${askPrice}/kg` : '—'}
+                      </span>
                     </div>
-                    <div className="bg-purple-50 border border-purple-100 rounded-xl px-2.5 py-1 text-[10px] text-purple-800 flex items-center justify-between">
-                      <span>🤖 AI Market Range:</span>
-                      <span className="font-bold">₹{aiMin} – ₹{aiMax}/kg</span>
+                    <div className="bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 text-[10px] text-slate-500 flex items-center justify-between">
+                      <span>🤖 AI Price Advisory:</span>
+                      <span className="font-medium">Unavailable</span>
                     </div>
 
                     <button
@@ -227,103 +256,136 @@ export const BuyerSearch = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={selectedMaterial?.material_type || 'Material Lot'}
-        subtitle={`Listing: ${selectedMaterial?.id?.substring(0, 8)}`}
+        subtitle={(() => {
+          const al = getActiveListing(selectedMaterial);
+          return al ? `Listing: ${al.id.substring(0, 8)}` : 'No active listing';
+        })()}
         maxWidth="max-w-2xl"
       >
-        {selectedMaterial && (
-          <div className="space-y-6">
-            {offerSuccess ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-3">
-                <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto" />
-                <h4 className="text-base font-bold text-emerald-900">Offer Placed Successfully!</h4>
-                <p className="text-xs text-emerald-700 max-w-sm mx-auto">
-                  Your bid of <strong>₹{offeredPrice}/kg</strong> for <strong>{offeredQuantity} kg</strong> was sent to the seller.
-                </p>
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-800 text-xs font-semibold"
-                  >
-                    Close Window
-                  </button>
-                  <Link
-                    to="/buyer/offers"
-                    className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
-                  >
-                    Go to Negotiations Portal →
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleMakeOffer} className="space-y-4">
-                {offerError && (
-                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{offerError}</span>
+        {selectedMaterial && (() => {
+          const activeListing = getActiveListing(selectedMaterial);
+          return (
+            <div className="space-y-6">
+              {offerSuccess ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-3">
+                  <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto" />
+                  <h4 className="text-base font-bold text-emerald-900">Offer Placed Successfully!</h4>
+                  <p className="text-xs text-emerald-700 max-w-sm mx-auto">
+                    Your bid of <strong>₹{offeredPrice}/kg</strong> for <strong>{offeredQuantity} kg</strong> was sent to the seller.
+                  </p>
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-800 text-xs font-semibold"
+                    >
+                      Close Window
+                    </button>
+                    <Link
+                      to="/buyer/offers"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
+                    >
+                      Go to Negotiations Portal →
+                    </Link>
                   </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl text-xs">
-                  <div><span className="text-slate-400 block text-[10px]">Seller Asking Price</span><span className="font-bold text-slate-900">₹{selectedMaterial.listings?.[0]?.asking_price || selectedMaterial.predicted_price}/kg</span></div>
-                  <div><span className="text-slate-400 block text-[10px]">AI Estimate Range</span><span className="font-bold text-purple-700">₹{selectedMaterial.listings?.[0]?.ai_estimated_min_price || 0} – ₹{selectedMaterial.listings?.[0]?.ai_estimated_max_price || 0}/kg</span></div>
                 </div>
+              ) : (
+                <form onSubmit={handleMakeOffer} className="space-y-4">
+                  {/* No active listing warning */}
+                  {!activeListing && (
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>No active listing is associated with this material lot. Offer submission is disabled.</span>
+                    </div>
+                  )}
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Offered Quantity (kg) *</label>
-                  <input
-                    type="number"
-                    required
-                    step="1"
-                    max={selectedMaterial.quantity_kg}
-                    value={offeredQuantity}
-                    onChange={(e) => setOfferedQuantity(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
-                  />
-                </div>
+                  {offerError && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{offerError}</span>
+                    </div>
+                  )}
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Offered Price (₹ per kg) *</label>
-                  <input
-                    type="number"
-                    required
-                    step="0.1"
-                    value={offeredPrice}
-                    onChange={(e) => setOfferedPrice(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
-                  />
-                </div>
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Seller Asking Price</span>
+                      <span className="font-bold text-slate-900">
+                        {activeListing ? `₹${activeListing.asking_price}/kg` : '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">AI Price Advisory</span>
+                      <span className="font-bold text-slate-500 text-[10px]">Price advisory unavailable</span>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Message for Seller (Optional)</label>
-                  <textarea
-                    rows="2"
-                    value={offerMessage}
-                    onChange={(e) => setOfferMessage(e.target.value)}
-                    placeholder="e.g. Seeking immediate dispatch to our Coimbatore processing facility."
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Offered Quantity (kg) *</label>
+                    <input
+                      type="number"
+                      required
+                      step="1"
+                      min="1"
+                      max={activeListing?.quantity_available ?? selectedMaterial.quantity_kg}
+                      value={offeredQuantity}
+                      onChange={(e) => setOfferedQuantity(e.target.value)}
+                      disabled={!activeListing}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    />
+                    {activeListing && (
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Available: {activeListing.quantity_available.toLocaleString('en-IN')} kg
+                      </p>
+                    )}
+                  </div>
 
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
-                  <span>Total Bid Value:</span>
-                  <strong className="text-emerald-700 text-sm">
-                    ₹{((parseFloat(offeredQuantity) || 0) * (parseFloat(offeredPrice) || 0)).toLocaleString('en-IN')}
-                  </strong>
-                </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Offered Price (₹ per kg) *</label>
+                    <input
+                      type="number"
+                      required
+                      step="0.1"
+                      min="0.1"
+                      value={offeredPrice}
+                      onChange={(e) => setOfferedPrice(e.target.value)}
+                      disabled={!activeListing}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmittingOffer}
-                  className="w-full py-3 rounded-xl bg-eco-600 hover:bg-eco-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
-                >
-                  <Handshake className="w-4 h-4" />
-                  {isSubmittingOffer ? 'Submitting...' : 'Submit Offer'}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Message for Seller (Optional)</label>
+                    <textarea
+                      rows="2"
+                      value={offerMessage}
+                      onChange={(e) => setOfferMessage(e.target.value)}
+                      placeholder="e.g. Seeking immediate dispatch to our Coimbatore processing facility."
+                      disabled={!activeListing}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:ring-2 focus:ring-eco-500 focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
+                    <span>Total Bid Value:</span>
+                    <strong className="text-emerald-700 text-sm">
+                      ₹{((parseFloat(offeredQuantity) || 0) * (parseFloat(offeredPrice) || 0)).toLocaleString('en-IN')}
+                    </strong>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingOffer || !activeListing}
+                    className="w-full py-3 rounded-xl bg-eco-600 hover:bg-eco-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    <Handshake className="w-4 h-4" />
+                    {isSubmittingOffer ? 'Submitting...' : 'Submit Offer'}
+                  </button>
+                </form>
+              )}
+            </div>
+          );
+        })()}
       </Modal>
+
     </div>
   );
 };

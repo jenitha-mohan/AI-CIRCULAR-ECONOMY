@@ -3,23 +3,23 @@ import {
   Handshake,
   CheckCircle,
   XCircle,
-  MessageSquare,
-  ArrowRight,
   TrendingUp,
-  Clock,
   Building2,
   AlertCircle,
   RefreshCw,
   History,
-  ShieldCheck
 } from 'lucide-react';
 import api from '../../api/client';
 import Badge from '../../components/Badge';
 import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useLocation } from 'react-router-dom';
 
 export const SellerOffers = () => {
+  const location = useLocation();
+  const isNegotiationsView = location.pathname.includes('/negotiations');
+
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOffer, setSelectedOffer] = useState(null);
@@ -33,12 +33,21 @@ export const SellerOffers = () => {
 
   const fetchOffers = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const res = await api.get('/api/offers/seller/me');
-      setOffers(res.data || []);
+      const allOffers = Array.isArray(res.data) ? res.data : [];
+      if (isNegotiationsView) {
+        setOffers(allOffers.filter((o) =>
+          o.status === 'COUNTERED' ||
+          (Array.isArray(o.history) && o.history.length > 1)
+        ));
+      } else {
+        setOffers(allOffers);
+      }
     } catch (err) {
       console.error('Error fetching seller offers:', err);
-      setErrorMsg('Failed to load incoming offers.');
+      setErrorMsg('Failed to load incoming offers. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -46,16 +55,17 @@ export const SellerOffers = () => {
 
   useEffect(() => {
     fetchOffers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNegotiationsView]);
 
   const handleOpenHistory = async (offer) => {
     try {
       const res = await api.get(`/api/offers/${offer.id}/history`);
-      setSelectedOffer({ ...offer, fullHistory: res.data });
+      setSelectedOffer({ ...offer, fullHistory: Array.isArray(res.data) ? res.data : [] });
       setHistoryModalOpen(true);
     } catch (err) {
       console.error('Error fetching history:', err);
-      setSelectedOffer(offer);
+      setSelectedOffer({ ...offer, fullHistory: Array.isArray(offer.history) ? offer.history : [] });
       setHistoryModalOpen(true);
     }
   };
@@ -73,7 +83,7 @@ export const SellerOffers = () => {
     setActionLoading(true);
     setErrorMsg('');
     try {
-      const res = await api.post(`/api/offers/${offerId}/accept`);
+      await api.post(`/api/offers/${offerId}/accept`);
       setSuccessMsg('Offer accepted! Confirmed transaction created.');
       fetchOffers();
     } catch (err) {
@@ -109,7 +119,7 @@ export const SellerOffers = () => {
     try {
       await api.post(`/api/offers/${selectedOffer.id}/counter`, {
         counter_price: parseFloat(counterPrice),
-        message: counterMessage || 'Counter offer submitted by seller.'
+        message: counterMessage || 'Counter offer submitted by seller.',
       });
       setSuccessMsg('Counter-offer sent to buyer!');
       setCounterModalOpen(false);
@@ -121,13 +131,28 @@ export const SellerOffers = () => {
     }
   };
 
+  // OfferHistory uses sender_id + action, NOT a created_by field.
+  const resolveHistoryRole = (step, offer) => {
+    if (!step) return 'buyer';
+    if (step.action === 'OFFER') return 'buyer';
+    if (step.sender_id && offer?.seller_id) {
+      return step.sender_id === offer.seller_id ? 'seller' : 'buyer';
+    }
+    return 'buyer';
+  };
+
   return (
     <div className="space-y-6 pb-12">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Incoming Buyer Offers & Negotiations</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            {isNegotiationsView ? 'Active Negotiations' : 'Incoming Buyer Offers & Negotiations'}
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Review, counter-offer, or accept bids from verified recyclers. Final agreed price is determined solely by mutual consent.
+            {isNegotiationsView
+              ? 'Multi-round price negotiations with buyers. Review counter-offers and reach mutually agreed terms.'
+              : 'Review, counter-offer, or accept bids from verified recyclers. Final agreed price is determined solely by mutual consent.'}
           </p>
         </div>
         <button
@@ -135,10 +160,11 @@ export const SellerOffers = () => {
           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-all"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          Refresh Offers
+          Refresh
         </button>
       </div>
 
+      {/* Success Banner */}
       {successMsg && (
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -149,6 +175,7 @@ export const SellerOffers = () => {
         </div>
       )}
 
+      {/* Error Banner */}
       {errorMsg && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -159,25 +186,36 @@ export const SellerOffers = () => {
         </div>
       )}
 
+      {/* Content */}
       {loading ? (
         <LoadingSpinner text="Loading incoming buyer offers..." />
       ) : offers.length === 0 ? (
         <EmptyState
-          title="No incoming offers yet"
-          description="When verified buyers discover your material lots, their bids and counter-proposals will appear here."
+          title={isNegotiationsView ? 'No active negotiations' : 'No incoming offers yet'}
+          description={
+            isNegotiationsView
+              ? 'Offers that enter a counter-offer round will appear here as active negotiations.'
+              : 'When verified buyers discover your material lots, their bids and counter-proposals will appear here.'
+          }
         />
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {offers.map((offer) => {
-            const isPendingAction = offer.status === 'PENDING' || (offer.status === 'COUNTERED' && offer.history && offer.history[offer.history.length - 1]?.created_by !== 'seller');
             const askingPrice = offer.listing?.asking_price || 0;
-            const diffPct = askingPrice > 0 ? (((offer.offered_price - askingPrice) / askingPrice) * 100).toFixed(1) : 0;
+            const diffPct =
+              askingPrice > 0
+                ? (((offer.offered_price - askingPrice) / askingPrice) * 100).toFixed(1)
+                : '0.0';
+            const historyArr = Array.isArray(offer.history) ? offer.history : [];
+            const latestStep = historyArr.length > 0 ? historyArr[historyArr.length - 1] : null;
+            const latestRole = resolveHistoryRole(latestStep, offer);
 
             return (
               <div
                 key={offer.id}
                 className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-6 space-y-4 hover:border-slate-300 transition-all"
               >
+                {/* Card Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-eco-50 flex items-center justify-center text-eco-600 font-bold">
@@ -193,7 +231,7 @@ export const SellerOffers = () => {
                             offer.status === 'ACCEPTED'
                               ? 'success'
                               : offer.status === 'REJECTED'
-                              ? 'error'
+                              ? 'danger'
                               : offer.status === 'COUNTERED'
                               ? 'warning'
                               : 'info'
@@ -205,7 +243,10 @@ export const SellerOffers = () => {
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
                         <Building2 className="w-3 h-3 text-slate-400" />
-                        Buyer: <strong className="text-slate-700">{offer.buyer?.organization || offer.buyer?.name}</strong>
+                        Buyer:{' '}
+                        <strong className="text-slate-700">
+                          {offer.buyer?.organization || offer.buyer?.name || 'Buyer'}
+                        </strong>
                         {offer.buyer?.business_type && (
                           <span className="text-slate-400">({offer.buyer.business_type})</span>
                         )}
@@ -216,57 +257,56 @@ export const SellerOffers = () => {
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Offer Placed</span>
                     <span className="text-xs font-semibold text-slate-600">
-                      {new Date(offer.created_at).toLocaleDateString()} {new Date(offer.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(offer.created_at).toLocaleDateString()}{' '}
+                      {new Date(offer.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                 </div>
 
-                {/* Offer Metrics Grid */}
+                {/* Metrics Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-100 text-xs">
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase font-semibold">Offered Quantity</span>
-                    <span className="font-bold text-slate-900 text-sm">{offer.offered_quantity.toLocaleString('en-IN')} kg</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {(offer.offered_quantity || 0).toLocaleString('en-IN')} kg
+                    </span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase font-semibold">Your Asking Price</span>
                     <span className="font-bold text-slate-600 text-sm">₹{askingPrice}/kg</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Offered Bid Price</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Current Bid Price</span>
                     <div className="flex items-center gap-1.5">
                       <span className="font-extrabold text-emerald-700 text-sm">₹{offer.offered_price}/kg</span>
-                      <span className={`text-[10px] font-bold ${parseFloat(diffPct) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        ({diffPct > 0 ? `+${diffPct}` : diffPct}%)
-                      </span>
+                      {askingPrice > 0 && (
+                        <span
+                          className={`text-[10px] font-bold ${
+                            parseFloat(diffPct) >= 0 ? 'text-emerald-600' : 'text-amber-600'
+                          }`}
+                        >
+                          ({parseFloat(diffPct) > 0 ? `+${diffPct}` : diffPct}%)
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase font-semibold">Total Deal Value</span>
                     <span className="font-extrabold text-slate-900 text-sm">
-                      ₹{(offer.offered_price * offer.offered_quantity).toLocaleString('en-IN')}
+                      ₹{((offer.offered_price || 0) * (offer.offered_quantity || 0)).toLocaleString('en-IN')}
                     </span>
                   </div>
                 </div>
 
-                {/* AI Advisory Guidance */}
-                {offer.listing?.ai_estimated_min_price && (
-                  <div className="text-[11px] text-purple-700 bg-purple-50/70 border border-purple-100 rounded-xl px-3 py-2 flex items-center justify-between">
-                    <span>
-                      🤖 <strong>AI Market Benchmark:</strong> ₹{offer.listing.ai_estimated_min_price} – ₹{offer.listing.ai_estimated_max_price}/kg (Advisory only)
-                    </span>
-                    <span className="text-[10px] text-purple-500 font-semibold">Seller + Buyer Decides Price</span>
-                  </div>
-                )}
-
-                {/* Latest Counter / Note */}
-                {offer.history && offer.history.length > 0 && (
+                {/* Latest note from history */}
+                {latestStep && (
                   <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 text-xs space-y-1">
                     <div className="flex items-center justify-between text-slate-500 font-semibold text-[11px]">
-                      <span>Latest Note ({offer.history[offer.history.length - 1].created_by.toUpperCase()}):</span>
-                      <span>Round {offer.history.length}</span>
+                      <span>Latest Note ({latestRole.toUpperCase()}):</span>
+                      <span>Round {historyArr.length}</span>
                     </div>
                     <p className="text-slate-800 italic">
-                      "{offer.history[offer.history.length - 1].message || 'No additional message provided'}"
+                      "{latestStep.message || 'No additional message provided'}"
                     </p>
                   </div>
                 )}
@@ -278,7 +318,7 @@ export const SellerOffers = () => {
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
                   >
                     <History className="w-3.5 h-3.5 text-slate-400" />
-                    View Full Audit Trail ({offer.history?.length || 1} rounds)
+                    View Full Audit Trail ({historyArr.length} rounds)
                   </button>
 
                   {offer.status !== 'ACCEPTED' && offer.status !== 'REJECTED' && (
@@ -312,7 +352,7 @@ export const SellerOffers = () => {
 
                   {offer.status === 'ACCEPTED' && (
                     <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                      ✓ Deal Confirmed at ₹{offer.agreed_price}/kg
+                      ✓ Deal Confirmed at ₹{offer.offered_price}/kg
                     </span>
                   )}
                 </div>
@@ -327,7 +367,7 @@ export const SellerOffers = () => {
         isOpen={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
         title="Negotiation Audit Trail"
-        subtitle={`Offer ID: ${selectedOffer?.id?.substring(0, 8)}`}
+        subtitle={`Offer ID: ${selectedOffer?.id?.substring(0, 8) ?? '—'}`}
         maxWidth="max-w-2xl"
       >
         <div className="space-y-4">
@@ -335,30 +375,37 @@ export const SellerOffers = () => {
             Chronological audit log of all price bids, counter-offers, and notes exchanged.
           </p>
           <div className="space-y-3">
-            {(selectedOffer?.fullHistory || selectedOffer?.history || []).map((step, idx) => (
-              <div
-                key={idx}
-                className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
-                  step.created_by === 'seller'
-                    ? 'bg-amber-50/60 border-amber-200/80 ml-6'
-                    : 'bg-blue-50/60 border-blue-200/80 mr-6'
-                }`}
-              >
-                <div className="flex items-center justify-between font-bold">
-                  <span className={step.created_by === 'seller' ? 'text-amber-900' : 'text-blue-900'}>
-                    Round {idx + 1}: {step.created_by === 'seller' ? 'Seller (You)' : 'Buyer'}
-                  </span>
-                  <span className="text-slate-900 font-extrabold text-sm">₹{step.price}/kg</span>
-                </div>
-                {step.message && (
-                  <p className="text-slate-700 italic">"{step.message}"</p>
-                )}
-                <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/40">
-                  <span>Action: {step.action || 'COUNTER'}</span>
-                  <span>{new Date(step.created_at).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+            {(selectedOffer?.fullHistory || []).length === 0 ? (
+              <p className="text-xs text-slate-400 italic">No negotiation history recorded yet.</p>
+            ) : (
+              (selectedOffer?.fullHistory || []).map((step, idx) => {
+                const role = resolveHistoryRole(step, selectedOffer);
+                return (
+                  <div
+                    key={step.id || idx}
+                    className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
+                      role === 'seller'
+                        ? 'bg-amber-50/60 border-amber-200/80 ml-6'
+                        : 'bg-blue-50/60 border-blue-200/80 mr-6'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-bold">
+                      <span className={role === 'seller' ? 'text-amber-900' : 'text-blue-900'}>
+                        Round {idx + 1}: {role === 'seller' ? 'Seller (You)' : 'Buyer'}
+                      </span>
+                      <span className="text-slate-900 font-extrabold text-sm">₹{step.price}/kg</span>
+                    </div>
+                    {step.message && (
+                      <p className="text-slate-700 italic">"{step.message}"</p>
+                    )}
+                    <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/40">
+                      <span>Action: {step.action || 'COUNTER'}</span>
+                      <span>{step.created_at ? new Date(step.created_at).toLocaleString() : '—'}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </Modal>
@@ -368,7 +415,7 @@ export const SellerOffers = () => {
         isOpen={counterModalOpen}
         onClose={() => setCounterModalOpen(false)}
         title="Submit Counter-Offer"
-        subtitle={`Listing: ${selectedOffer?.listing?.material?.material_type} (${selectedOffer?.offered_quantity} kg)`}
+        subtitle={`Listing: ${selectedOffer?.listing?.material?.material_type ?? 'Material'} (${selectedOffer?.offered_quantity ?? 0} kg)`}
         maxWidth="max-w-md"
       >
         <form onSubmit={handleSendCounter} className="space-y-4">
@@ -386,7 +433,7 @@ export const SellerOffers = () => {
               placeholder="e.g. 195.0"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              Current Buyer Bid: ₹{selectedOffer?.offered_price}/kg | Asking Price: ₹{selectedOffer?.listing?.asking_price}/kg
+              Current Buyer Bid: ₹{selectedOffer?.offered_price ?? '—'}/kg | Asking Price: ₹{selectedOffer?.listing?.asking_price ?? '—'}/kg
             </p>
           </div>
 
@@ -404,8 +451,15 @@ export const SellerOffers = () => {
           </div>
 
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
-            Total counter offer value: <strong>₹{((parseFloat(counterPrice) || 0) * (selectedOffer?.offered_quantity || 0)).toLocaleString('en-IN')}</strong>
+            Total counter offer value:{' '}
+            <strong>
+              ₹{((parseFloat(counterPrice) || 0) * (selectedOffer?.offered_quantity || 0)).toLocaleString('en-IN')}
+            </strong>
           </div>
+
+          {errorMsg && (
+            <p className="text-xs text-rose-600 font-semibold">{errorMsg}</p>
+          )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <button

@@ -2,6 +2,7 @@
 Material Schemas
 """
 
+from __future__ import annotations
 from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel
@@ -52,6 +53,19 @@ class MaterialUpdate(BaseModel):
     status: Optional[str] = None
 
 
+class ListingSummary(BaseModel):
+    """Lightweight listing snapshot embedded in MaterialResponse."""
+    id: str
+    asking_price: float
+    quantity_available: float
+    unit: str = "kg"
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class MaterialResponse(BaseModel):
     id: str
     seller_id: str
@@ -68,6 +82,7 @@ class MaterialResponse(BaseModel):
     seller: Optional[UserResponse] = None
     category: Optional[CategoryResponse] = None
     images: Optional[List[MaterialImageResponse]] = []
+    listings: Optional[List[ListingSummary]] = []
 
     class Config:
         from_attributes = True

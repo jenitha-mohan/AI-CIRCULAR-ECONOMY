@@ -82,7 +82,9 @@ def test_create_offer_invalid_quantity_or_price(client, buyer_token, db_session)
 
 
 def test_multi_round_negotiation_and_acceptance(client, buyer_token, seller_token, db_session):
-    listing = db_session.query(Listing).filter(Listing.status == "active").first()
+    from backend.app.models.user import User
+    seller = db_session.query(User).filter(User.email == "seller@ecotextiles.com").first()
+    listing = db_session.query(Listing).filter(Listing.seller_id == seller.id, Listing.status == "active").first()
     initial_qty = listing.quantity_available
     trade_qty = 100.0
 
@@ -143,3 +145,123 @@ def test_multi_round_negotiation_and_acceptance(client, buyer_token, seller_toke
     db_session.expire_all()
     updated_listing = db_session.query(Listing).filter(Listing.id == listing.id).first()
     assert updated_listing.quantity_available == initial_qty - trade_qty
+
+
+def test_offers_isolated_between_different_sellers(client, buyer_token, seller_token, db_session):
+    """
+    Offers made to Seller A must NOT appear in Seller B's offers list.
+    """
+    from backend.app.models.user import User
+    from backend.app.models.material import Material
+
+    # Create another seller
+    seller_b_reg = client.post("/api/auth/register", json={
+        "name": "Different Seller",
+        "email": "seller_b_unique@test.com",
+        "password": "Password@123",
+        "role": "seller",
+        "phone": "+91 9111111111",
+        "organization": "Seller B Org",
+        "city": "Chennai",
+        "state": "Tamil Nadu"
+    })
+    seller_b_token = seller_b_reg.json()["access_token"]
+    seller_b_id = seller_b_reg.json()["user"]["id"]
+
+    # Listing belongs to original seller (seller@ecotextiles.com)
+    seller_a = db_session.query(User).filter(User.email == "seller@ecotextiles.com").first()
+    listing_a = db_session.query(Listing).filter(Listing.seller_id == seller_a.id, Listing.status == "active").first()
+    assert listing_a is not None
+
+    # Buyer creates offer on Listing A
+    create_res = client.post("/api/offers", json={
+        "listing_id": listing_a.id,
+        "offered_quantity": 25.0,
+        "offered_price": 185.0,
+        "message": "Offer for seller A only"
+    }, headers={"Authorization": f"Bearer {buyer_token}"})
+    assert create_res.status_code == 201
+    offer_id = create_res.json()["id"]
+
+    # Seller A sees this offer
+    res_a = client.get("/api/offers/seller/me", headers={"Authorization": f"Bearer {seller_token}"})
+    assert res_a.status_code == 200
+    assert any(o["id"] == offer_id for o in res_a.json())
+
+    # Seller B does NOT see this offer
+    res_b = client.get("/api/offers/seller/me", headers={"Authorization": f"Bearer {seller_b_token}"})
+    assert res_b.status_code == 200
+    assert not any(o["id"] == offer_id for o in res_b.json())
+
+
+def test_seller_counter_offer_and_buyer_acceptance(client, buyer_token, seller_token, db_session):
+    """
+    Test full buyer-acceptance flow:
+    1. Buyer places offer.
+    2. Seller counters the offer.
+    3. Verify offer history shows sender_id is the seller.
+    4. Buyer accepts the seller's counter-offer.
+    5. Verify transaction is confirmed and offer is ACCEPTED.
+    """
+    from backend.app.models.user import User
+
+    seller = db_session.query(User).filter(User.email == "seller@ecotextiles.com").first()
+    listing = db_session.query(Listing).filter(Listing.seller_id == seller.id, Listing.status == "active").first()
+    assert listing is not None
+
+    # Step 1: Buyer creates offer at 170.0
+    create_res = client.post("/api/offers", json={
+        "listing_id": listing.id,
+        "offered_quantity": 30.0,
+        "offered_price": 170.0,
+        "message": "Initial buyer bid"
+    }, headers={"Authorization": f"Bearer {buyer_token}"})
+    assert create_res.status_code == 201
+    offer_id = create_res.json()["id"]
+
+    # Step 2: Seller counters at 180.0
+    counter_res = client.post(f"/api/offers/{offer_id}/counter", json={
+        "counter_price": 180.0,
+        "counter_quantity": 30.0,
+        "message": "Seller counter proposal at 180/kg"
+    }, headers={"Authorization": f"Bearer {seller_token}"})
+    assert counter_res.status_code == 200
+    assert counter_res.json()["status"] == "COUNTERED"
+    assert counter_res.json()["offered_price"] == 180.0
+
+    # Step 3: Verify history shows last entry was sent by seller
+    hist_res = client.get(f"/api/offers/{offer_id}/history", headers={"Authorization": f"Bearer {buyer_token}"})
+    assert hist_res.status_code == 200
+    history = hist_res.json()
+    assert len(history) == 2
+    last_step = history[-1]
+    assert last_step["action"] == "COUNTER"
+    assert last_step["price"] == 180.0
+    assert last_step["sender_id"] == seller.id
+
+    # Step 4: Unauthorized user (another seller) cannot accept this offer
+    other_seller_reg = client.post("/api/auth/register", json={
+        "name": "Unauthorized Third Party",
+        "email": "thirdparty@test.com",
+        "password": "Password@123",
+        "role": "seller",
+        "phone": "+91 9222222222",
+        "organization": "Third Party Org",
+        "city": "Chennai",
+        "state": "Tamil Nadu"
+    })
+    third_token = other_seller_reg.json()["access_token"]
+    unauth_accept = client.post(f"/api/offers/{offer_id}/accept", headers={"Authorization": f"Bearer {third_token}"})
+    assert unauth_accept.status_code == 403
+
+    # Step 5: Buyer accepts the seller's counter-offer
+    accept_res = client.post(f"/api/offers/{offer_id}/accept", headers={"Authorization": f"Bearer {buyer_token}"})
+    assert accept_res.status_code == 200
+    data = accept_res.json()
+    assert data["success"] is True
+    assert data["offer"]["status"] == "ACCEPTED"
+    assert data["offer"]["agreed_price"] == 180.0
+    assert data["transaction"]["status"] == "CONFIRMED"
+    assert data["transaction"]["agreed_price"] == 180.0
+    assert data["transaction"]["quantity_kg"] == 30.0
+

@@ -110,6 +110,31 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """
+    Safely returns the authenticated User if a valid Bearer token is present,
+    or None if no authorization credentials were supplied or if the token is invalid.
+    Allows endpoints to tailor privacy levels between public visitors and authenticated users.
+    """
+    if not auth or not auth.credentials:
+        return None
+    try:
+        payload = jwt.decode(
+            auth.credentials,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        user_id: str = payload.get("sub")
+        if not user_id:
+            return None
+        return db.query(User).filter(User.id == user_id).first()
+    except (JWTError, ExpiredSignatureError):
+        return None
+
+
 def require_role(allowed_roles: Union[List[str], str]):
     """
     Dependency factory to enforce Role-Based Access Control (RBAC).

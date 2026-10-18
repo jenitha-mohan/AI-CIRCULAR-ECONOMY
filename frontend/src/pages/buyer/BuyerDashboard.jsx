@@ -65,8 +65,13 @@ export const BuyerDashboard = () => {
     return <LoadingSpinner text="Loading Recycler Sourcing Command Center..." />;
   }
 
-  const completedPurchases = transactions.filter((t) => t.status === 'completed');
-  const totalSourcedVolume = completedPurchases.reduce((acc, t) => acc + t.quantity_kg, 0);
+  // Valid transaction statuses representing agreed/confirmed/completed procurement deals
+  const ACTIVE_PURCHASE_STATUSES = new Set(['CONFIRMED', 'PICKUP_SCHEDULED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED']);
+  const completedPurchases = transactions.filter((t) => {
+    const s = String(t.status || '').toUpperCase();
+    return ACTIVE_PURCHASE_STATUSES.has(s);
+  });
+  const totalSourcedVolume = completedPurchases.reduce((acc, t) => acc + (t.quantity_kg || 0), 0);
   const totalCo2Avoided = completedPurchases.reduce((acc, t) => acc + (t.co2_avoided_kg || 0), 0);
 
   // Group real transactions by month

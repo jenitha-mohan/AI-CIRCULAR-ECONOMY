@@ -37,6 +37,7 @@ export const SellerDashboard = () => {
   const { user } = useAuth();
   const [materials, setMaterials] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [sellerStats, setSellerStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,23 +47,23 @@ export const SellerDashboard = () => {
       setLoading(true);
       try {
         const params = user?.id ? `?seller_id=${user.id}` : '';
-        const [matRes, txRes, anaRes] = await Promise.all([
+        const [matRes, txRes, anaRes, offRes] = await Promise.all([
           api.get(`/api/materials${params}`),
           api.get('/api/transactions'),
-          api.get('/api/analytics/overview')
+          api.get('/api/analytics/overview'),
+          api.get('/api/offers/seller/me').catch(() => ({ data: [] }))
         ]);
         setMaterials(matRes.data);
         setTransactions(txRes.data);
         setAnalytics(anaRes.data);
+        setOffers(offRes.data || []);
 
-        // Fetch seller-specific stats if we have user id
-        if (user?.id) {
-          try {
-            const statsRes = await api.get(`/api/analytics/seller/${user.id}`);
-            setSellerStats(statsRes.data);
-          } catch (e) {
-            // non-critical, proceed without stats
-          }
+        // Fetch seller-specific stats directly from JWT authenticated endpoint
+        try {
+          const statsRes = await api.get('/api/analytics/seller/me');
+          setSellerStats(statsRes.data);
+        } catch (e) {
+          // non-critical, proceed without stats
         }
       } catch (err) {
         console.error('Error loading seller dashboard:', err);
@@ -147,7 +148,7 @@ export const SellerDashboard = () => {
         />
         <MetricCard
           title="Pending Offers"
-          value={0}
+          value={offers.filter((o) => o.status === 'PENDING' || o.status === 'COUNTERED').length}
           unit=""
           change=""
           changeType="neutral"

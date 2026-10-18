@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://postgres:sql@localhost:5432/circular_economy"
 
-    # Security — MUST be set via environment variable in production
-    JWT_SECRET: str = "circular_economy_dev_secret_change_in_production_2026"
+    # Security — MUST be set via environment variable
+    JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
@@ -40,6 +40,35 @@ class Settings(BaseSettings):
         extra = "allow"
 
 
+KNOWN_INSECURE_SECRETS = {
+    "circular_economy_dev_secret_change_in_production_2026",
+    "secret",
+    "changeme",
+    "default",
+}
+
+
+def validate_jwt_secret(secret: str) -> None:
+    """
+    Validate that JWT_SECRET is configured with a secure, non-default value.
+    Fails safely without logging the actual secret content.
+    """
+    if not secret or not secret.strip():
+        raise RuntimeError(
+            "JWT_SECRET is missing or empty. A strong JWT_SECRET must be configured via environment variables."
+        )
+    if secret.strip() in KNOWN_INSECURE_SECRETS:
+        raise RuntimeError(
+            "Insecure default JWT_SECRET detected. Please provide a unique, cryptographically strong secret via the JWT_SECRET environment variable."
+        )
+    if len(secret.strip()) < 32:
+        raise RuntimeError(
+            "JWT_SECRET must be at least 32 characters long to ensure cryptographic security."
+        )
+
+
 settings = Settings()
+validate_jwt_secret(settings.JWT_SECRET)
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+
 

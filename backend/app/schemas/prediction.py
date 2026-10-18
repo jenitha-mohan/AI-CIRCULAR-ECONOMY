@@ -8,18 +8,18 @@ from pydantic import BaseModel, Field
 
 
 class PricePredictionRequest(BaseModel):
-    material_type: str = Field(..., example="Aluminum")
-    weight_kg: float = Field(..., example=500.0)
-    quality: str = Field(..., example="High")
-    location: str = Field(..., example="Coimbatore")
-    demand_level: str = Field(..., example="High")
-    historical_price: float = Field(..., example=180.0)
-    processing_cost: float = Field(..., example=5.0)
-    transportation_distance: float = Field(..., example=20.0)
-    month: int = Field(..., example=9)
-    seller_type: str = Field(..., example="Business")
-    buyer_demand: float = Field(..., example=0.85)
-    material_condition: str = Field(..., example="Good")
+    material_type: str = Field(..., json_schema_extra={"example": "Aluminum"})
+    weight_kg: float = Field(..., json_schema_extra={"example": 500.0})
+    quality: str = Field(..., json_schema_extra={"example": "High"})
+    location: str = Field(..., json_schema_extra={"example": "Coimbatore"})
+    demand_level: str = Field(..., json_schema_extra={"example": "High"})
+    historical_price: float = Field(..., json_schema_extra={"example": 180.0})
+    processing_cost: float = Field(..., json_schema_extra={"example": 5.0})
+    transportation_distance: float = Field(..., json_schema_extra={"example": 20.0})
+    month: int = Field(..., json_schema_extra={"example": 9})
+    seller_type: str = Field(..., json_schema_extra={"example": "Business"})
+    buyer_demand: float = Field(..., json_schema_extra={"example": 0.85})
+    material_condition: str = Field(..., json_schema_extra={"example": "Good"})
 
 
 class PricePredictionResponse(BaseModel):
@@ -53,6 +53,8 @@ class MaterialClassificationPredictResponse(BaseModel):
     limitations: str
     category: Optional[str] = "Mixed"
     model_name: Optional[str] = "MobileNetV2"
+    is_uncertain: Optional[bool] = False
+    uncertainty_warning: Optional[str] = None
 
 
 class ClassificationResponse(BaseModel):
@@ -70,10 +72,12 @@ class ClassificationResponse(BaseModel):
     prototype: Optional[bool] = True
     supported_classes: Optional[List[str]] = None
     limitations: Optional[str] = None
+    is_uncertain: Optional[bool] = False
+    uncertainty_warning: Optional[str] = None
 
 
 class DemandPredictionRequest(BaseModel):
-    material_type: str = Field(..., example="Copper")
+    material_type: str = Field(..., json_schema_extra={"example": "Copper"})
     forecast_period: Optional[str] = "next_month"
     location: Optional[str] = "Coimbatore"
 

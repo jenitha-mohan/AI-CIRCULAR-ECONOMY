@@ -122,6 +122,16 @@ export const BuyerOffers = () => {
     }
   };
 
+  // OfferHistory uses sender_id + action, NOT a created_by field.
+  const resolveHistoryRole = (step, offer) => {
+    if (!step) return 'buyer';
+    if (step.action === 'OFFER') return 'buyer';
+    if (step.sender_id && offer?.seller_id) {
+      return step.sender_id === offer.seller_id ? 'seller' : 'buyer';
+    }
+    return 'buyer';
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -172,7 +182,7 @@ export const BuyerOffers = () => {
           {offers.map((offer) => {
             const askingPrice = offer.listing?.asking_price || 0;
             const lastRound = offer.history && offer.history.length > 0 ? offer.history[offer.history.length - 1] : null;
-            const sellerCountered = lastRound?.created_by === 'seller';
+            const sellerCountered = resolveHistoryRole(lastRound, offer) === 'seller';
 
             return (
               <div
@@ -194,7 +204,7 @@ export const BuyerOffers = () => {
                             offer.status === 'ACCEPTED'
                               ? 'success'
                               : offer.status === 'REJECTED'
-                              ? 'error'
+                              ? 'danger'
                               : offer.status === 'CANCELLED'
                               ? 'default'
                               : sellerCountered
@@ -300,7 +310,7 @@ export const BuyerOffers = () => {
 
                   {offer.status === 'ACCEPTED' && (
                     <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                      ✓ Deal Confirmed at ₹{offer.agreed_price}/kg
+                      ✓ Deal Confirmed at ₹{offer.offered_price}/kg
                     </span>
                   )}
                 </div>
@@ -320,30 +330,34 @@ export const BuyerOffers = () => {
       >
         <div className="space-y-4">
           <div className="space-y-3">
-            {(selectedOffer?.fullHistory || selectedOffer?.history || []).map((step, idx) => (
-              <div
-                key={idx}
-                className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
-                  step.created_by === 'seller'
-                    ? 'bg-amber-50/60 border-amber-200/80 ml-6'
-                    : 'bg-blue-50/60 border-blue-200/80 mr-6'
-                }`}
-              >
-                <div className="flex items-center justify-between font-bold">
-                  <span className={step.created_by === 'seller' ? 'text-amber-900' : 'text-blue-900'}>
-                    Round {idx + 1}: {step.created_by === 'seller' ? 'Seller Counter' : 'Buyer Bid (You)'}
-                  </span>
-                  <span className="text-slate-900 font-extrabold text-sm">₹{step.price}/kg</span>
+            {(selectedOffer?.fullHistory || selectedOffer?.history || []).map((step, idx) => {
+              const role = resolveHistoryRole(step, selectedOffer);
+              const isSeller = role === 'seller';
+              return (
+                <div
+                  key={idx}
+                  className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
+                    isSeller
+                      ? 'bg-amber-50/60 border-amber-200/80 ml-6'
+                      : 'bg-blue-50/60 border-blue-200/80 mr-6'
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-bold">
+                    <span className={isSeller ? 'text-amber-900' : 'text-blue-900'}>
+                      Round {idx + 1}: {isSeller ? 'Seller Counter' : 'Buyer Bid (You)'}
+                    </span>
+                    <span className="text-slate-900 font-extrabold text-sm">₹{step.price}/kg</span>
+                  </div>
+                  {step.message && (
+                    <p className="text-slate-700 italic">"{step.message}"</p>
+                  )}
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/40">
+                    <span>Action: {step.action || 'COUNTER'}</span>
+                    <span>{new Date(step.created_at).toLocaleString()}</span>
+                  </div>
                 </div>
-                {step.message && (
-                  <p className="text-slate-700 italic">"{step.message}"</p>
-                )}
-                <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/40">
-                  <span>Action: {step.action || 'COUNTER'}</span>
-                  <span>{new Date(step.created_at).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </Modal>

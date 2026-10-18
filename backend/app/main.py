@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.app.config import settings
@@ -100,17 +101,30 @@ app.include_router(classification_router)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={"success": False, "message": exc.detail}
+        content={"success": False, "message": exc.detail, "detail": exc.detail}
     )
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    errors = exc.errors()
-    msg = errors[0]["msg"] if errors else "Validation error"
+    raw_errors = exc.errors()
+    safe_errors = []
+    for err in raw_errors:
+        safe_err = {
+            "loc": list(err.get("loc", [])),
+            "msg": str(err.get("msg", "")),
+            "type": str(err.get("type", "")),
+        }
+        safe_errors.append(safe_err)
+
+    msg = safe_errors[0]["msg"] if safe_errors else "Validation error"
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"success": False, "message": f"Invalid input: {msg}", "errors": errors}
+        content=jsonable_encoder({
+            "success": False,
+            "message": f"Invalid input: {msg}",
+            "errors": safe_errors
+        })
     )
 
 

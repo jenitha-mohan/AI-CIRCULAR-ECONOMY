@@ -125,5 +125,7 @@ async def classify_material_image(
         "prototype":         result.get("prototype", True),
         "supported_classes": result.get("supported_classes", []),
         "limitations":       result.get("limitations", ""),
+        "is_uncertain":      result.get("is_uncertain", False),
+        "uncertainty_warning": result.get("uncertainty_warning"),
         # seller_id is NEVER returned — no sensitive data leakage
     }
